@@ -1,0 +1,15 @@
+[package]
+name = "yada"
+version = "0.1.0"
+authors = ["Takuya Asano <takuya.a@gmail.com>"]
+description = "Yada is a yet another double-array trie library aiming for fast search and compact data representation."
+documentation = "https://github.com/takuyaa/yada"
+homepage = "https://github.com/takuyaa/yada"
+repository = "https://github.com/takuyaa/yada"
+readme = "README.md"
+keywords = ["double-array", "trie", "search"]
+categories = ["algorithms", "compression", "data-structures", "text-processing"]
+license = "MIT OR Apache-2.0"
+edition = "2018"
+
+[dependencies]
