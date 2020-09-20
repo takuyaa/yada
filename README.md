@@ -6,9 +6,11 @@ compact data representation.
 ## Features
 
 - Build static double-array tries
-  - Yada adopts the compact binary representation of double-array nodes like [Darts-clone](https://github.com/s-yata/darts-clone).
+  - Yada adopts the compact binary representation of double-array nodes like
+  [Darts-clone](https://github.com/s-yata/darts-clone).
 - Common prefix search
-  - The method returns an `Iterator` that is an effective way to find multiple values without heap allocation.
+  - The method returns an `Iterator` that is an effective way to find multiple
+  values without heap allocation.
 - Exact match search
   - The method finds a value associated with an exact match key as a `Option`.
 
@@ -63,7 +65,8 @@ assert_eq!(
 
 ## Limitations
 
-- The offset of an double-array node is 23 bit wide, so it can only represent up to ~8.3M nodes.
+- The offset of an double-array node is 23 bit wide, so it can only represent up to
+ ~8.3M nodes.
   - It means this limitation results in the size upper bound ~33 MB of double-arrays.
 
 ## License
