@@ -14,6 +14,10 @@ compact data representation.
 - Exact match search
   - The method finds a value associated with an exact match key as a `Option`.
 
+## Requirements
+
+* Rust version >= 1.46.0 
+
 ## Usage
 
 See also [example code](examples/build_and_search.rs) for more details.
