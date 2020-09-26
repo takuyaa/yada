@@ -1,5 +1,8 @@
 # Yada: Yet Another Double-Array
 
+[![crate-name at crates.io](https://img.shields.io/crates/v/yada.svg)](https://crates.io/crates/yada)
+[![crate-name at docs.rs](https://docs.rs/yada/badge.svg)](https://docs.rs/yada)
+
 Yada is a yet another double-array trie library aiming for fast search and
 compact data representation.
 
@@ -16,7 +19,7 @@ compact data representation.
 
 ## Requirements
 
-* Rust version >= 1.46.0 
+- Rust version >= 1.46.0 
 
 ## Usage
 
@@ -70,6 +73,8 @@ assert_eq!(
 
 ## Limitations
 
+- The value must be represented as a 31 bit unsigned integer, typed `u32`.
+  - Yada uses the most significant bit (MSB) as a flag to distinguish between a value node and others.
 - The offset of an double-array node is 23 bit wide, so it can only represent up to
  ~8.3M nodes.
   - It means this limitation results in the size upper bound ~33 MB of double-arrays.
