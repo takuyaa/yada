@@ -54,8 +54,9 @@ assert_eq!(da.exact_match_search("abcd\0".as_bytes()), None);
 
 // common prefix search
 assert_eq!(
-    da.common_prefix_search("abcd".as_bytes()).collect::<Vec<_>>(),
-    vec![0, 1, 2] // match "a", "ab", "abc"
+    da.common_prefix_search("abcd".as_bytes())
+        .collect::<Vec<_>>(),
+    vec![(0, 1), (1, 2), (2, 3)] // match "a", "ab", "abc", value and key length
 );
 assert_eq!(
     da.common_prefix_search("d".as_bytes()).collect::<Vec<_>>(),
