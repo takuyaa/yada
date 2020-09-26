@@ -1,6 +1,6 @@
 [package]
 name = "yada"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Takuya Asano <takuya.a@gmail.com>"]
 description = "Yada is a yet another double-array trie library aiming for fast search and compact data representation."
 documentation = "https://github.com/takuyaa/yada"
