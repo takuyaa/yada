@@ -60,8 +60,11 @@ where
         Some(unit.value())
     }
 
-    /// Finds all values which have a common prefix with a `key`.
-    pub fn common_prefix_search<'b, K>(&'b self, key: &'b K) -> impl Iterator<Item = u32> + 'b
+    /// Finds all values and it's key length which have a common prefix with a `key`.
+    pub fn common_prefix_search<'b, K>(
+        &'b self,
+        key: &'b K,
+    ) -> impl Iterator<Item = (u32, usize)> + 'b
     where
         K: AsRef<[u8]>,
         K: ?Sized,
@@ -69,7 +72,10 @@ where
         self.common_prefix_search_bytes(key.as_ref())
     }
 
-    fn common_prefix_search_bytes<'b>(&'b self, key: &'b [u8]) -> impl Iterator<Item = u32> + 'b {
+    fn common_prefix_search_bytes<'b>(
+        &'b self,
+        key: &'b [u8],
+    ) -> impl Iterator<Item = (u32, usize)> + 'b {
         CommonPrefixSearch {
             key,
             double_array: self,
@@ -102,7 +108,7 @@ impl<T> Iterator for CommonPrefixSearch<'_, '_, T>
 where
     T: Deref<Target = [u8]>,
 {
-    type Item = u32;
+    type Item = (u32, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.key_pos < self.key.len() {
@@ -119,7 +125,7 @@ where
             if unit.has_leaf() {
                 let leaf_pos = unit.offset();
                 let leaf_unit = self.double_array.get_unit(leaf_pos as UnitID)?;
-                return Some(leaf_unit.value());
+                return Some((leaf_unit.value(), self.key_pos));
             }
         }
         None
@@ -163,26 +169,26 @@ mod tests {
 
         assert_eq!(
             da.common_prefix_search("a".as_bytes()).collect::<Vec<_>>(),
-            vec![0]
+            vec![(0, 1)]
         );
         assert_eq!(
             da.common_prefix_search("aa".as_bytes()).collect::<Vec<_>>(),
-            vec![0]
+            vec![(0, 1)]
         );
         assert_eq!(
             da.common_prefix_search("abbb".as_bytes())
                 .collect::<Vec<_>>(),
-            vec![0, 1]
+            vec![(0, 1), (1, 2)]
         );
         assert_eq!(
             da.common_prefix_search("abaa".as_bytes())
                 .collect::<Vec<_>>(),
-            vec![0, 1, 2]
+            vec![(0, 1), (1, 2), (2, 3)]
         );
         assert_eq!(
             da.common_prefix_search("caa".as_bytes())
                 .collect::<Vec<_>>(),
-            vec![10, 11]
+            vec![(10, 1), (11, 3)]
         );
         assert_eq!(
             da.common_prefix_search("d".as_bytes()).collect::<Vec<_>>(),

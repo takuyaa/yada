@@ -37,22 +37,22 @@ fn main() {
     // common prefix search
     assert_eq!(
         da.common_prefix_search("a".as_bytes()).collect::<Vec<_>>(),
-        vec![0] //  match "a"
+        vec![(0, 1)] //  match "a"
     );
     assert_eq!(
         da.common_prefix_search("abc".as_bytes())
             .collect::<Vec<_>>(),
-        vec![0, 1, 2] // match "a", "ab", "abc"
+        vec![(0, 1), (1, 2), (2, 3)] // match "a", "ab", "abc"
     );
     assert_eq!(
         da.common_prefix_search("abcd".as_bytes())
             .collect::<Vec<_>>(),
-        vec![0, 1, 2] // match "a", "ab", "abc"
+        vec![(0, 1), (1, 2), (2, 3)] // match "a", "ab", "abc"
     );
     assert_eq!(
         da.common_prefix_search("bcd".as_bytes())
             .collect::<Vec<_>>(),
-        vec![3, 4] // match "b", "bc"
+        vec![(3, 1), (4, 2)] // match "b", "bc"
     );
     assert_eq!(
         da.common_prefix_search("d".as_bytes()).collect::<Vec<_>>(),
