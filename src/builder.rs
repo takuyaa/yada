@@ -114,8 +114,15 @@ impl DoubleArrayBuilder {
         let mut value = None;
 
         for i in begin..end {
-            let key_value = keyset.get(i)?;
-            let label = *key_value.0.as_ref().get(depth)?;
+            let key_value = keyset.get(i).unwrap();
+            let label = {
+                let key = key_value.0.as_ref();
+                if depth == key.len() {
+                    0
+                } else {
+                    *key.get(depth)?
+                }
+            };
             if label == 0 {
                 assert!(value.is_none()); // there is just one '\0' in a key
                 value = Some(key_value.1);
@@ -380,16 +387,16 @@ mod tests {
     #[test]
     fn test_build() {
         let keyset: &[(&[u8], u32)] = &[
-            ("a\0".as_bytes(), 0),
-            ("aa\0".as_bytes(), 0),
-            ("aaa\0".as_bytes(), 0),
-            ("aaaa\0".as_bytes(), 0),
-            ("aaaaa\0".as_bytes(), 0),
-            ("ab\0".as_bytes(), 0),
-            ("abc\0".as_bytes(), 0),
-            ("abcd\0".as_bytes(), 0),
-            ("abcde\0".as_bytes(), 0),
-            ("abcdef\0".as_bytes(), 0),
+            ("a".as_bytes(), 0),
+            ("aa".as_bytes(), 0),
+            ("aaa".as_bytes(), 0),
+            ("aaaa".as_bytes(), 0),
+            ("aaaaa".as_bytes(), 0),
+            ("ab".as_bytes(), 0),
+            ("abc".as_bytes(), 0),
+            ("abcd".as_bytes(), 0),
+            ("abcde".as_bytes(), 0),
+            ("abcdef".as_bytes(), 0),
         ];
 
         let mut builder = DoubleArrayBuilder::new();
