@@ -28,32 +28,29 @@ where
     }
 
     fn exact_match_search_bytes(&self, key: &[u8]) -> Option<u32> {
-        let mut node_pos = 0 as UnitID;
-        for &c in key.iter().take(key.len() - 1) {
-            // assumes characters don't have NULL ('\0') except for the last character
-            assert_ne!(c, 0);
+        // traverse from root node
+        let mut unit = self.get_unit(0 as UnitID)?;
 
-            let unit = self.get_unit(node_pos)?;
+        for &c in key.iter().take(key.len()) {
             assert!(!unit.is_leaf());
+            assert_ne!(c, 0); // assumes characters don't have NULL ('\0')
 
-            node_pos = (unit.offset() ^ (c as u32)) as UnitID;
-            let unit = self.get_unit(node_pos)?;
+            // try to traverse node
+            let node_pos = (unit.offset() ^ (c as u32)) as UnitID;
+            unit = self.get_unit(node_pos)?;
 
             if c != unit.label() as u8 {
                 return None;
             }
         }
 
-        let unit = self.get_unit(node_pos)?;
         if !unit.has_leaf() {
             return None;
         }
 
-        let &c = key.last().unwrap();
-        assert_eq!(c, 0); // assumes last character is NULL ('\0')
-        node_pos = (unit.offset() ^ (c as u32)) as UnitID;
-
-        let unit = self.get_unit(node_pos)?;
+        // traverse node by NULL ('\0')
+        let node_pos = (unit.offset() ^ (0u32)) as UnitID;
+        unit = self.get_unit(node_pos)?;
         assert!(unit.is_leaf());
         assert!(unit.value() < (1 << 31));
 
@@ -159,13 +156,13 @@ mod tests {
 
         let da = DoubleArray::new(da_bytes.unwrap());
 
-        // for (key, value) in keyset {
-        //     assert_eq!(da.exact_match_search(key), Some(*value as u32));
-        // }
-        assert_eq!(da.exact_match_search("aa\0".as_bytes()), None);
-        assert_eq!(da.exact_match_search("abc\0".as_bytes()), None);
-        assert_eq!(da.exact_match_search("b\0".as_bytes()), None);
-        assert_eq!(da.exact_match_search("ca\0".as_bytes()), None);
+        for (key, value) in keyset {
+            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+        }
+        assert_eq!(da.exact_match_search("aa".as_bytes()), None);
+        assert_eq!(da.exact_match_search("abc".as_bytes()), None);
+        assert_eq!(da.exact_match_search("b".as_bytes()), None);
+        assert_eq!(da.exact_match_search("ca".as_bytes()), None);
 
         assert_eq!(
             da.common_prefix_search("a".as_bytes()).collect::<Vec<_>>(),

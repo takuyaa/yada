@@ -32,12 +32,12 @@ use yada::builder::DoubleArrayBuilder;
 
 // make a keyset which have key-value pairs
 let keyset = &[
-    ("a\0".as_bytes(), 0),
-    ("ab\0".as_bytes(), 1),
-    ("abc\0".as_bytes(), 2),
-    ("b\0".as_bytes(), 3),
-    ("bc\0".as_bytes(), 4),
-    ("c\0".as_bytes(), 5),
+    ("a".as_bytes(), 0),
+    ("ab".as_bytes(), 1),
+    ("abc".as_bytes(), 2),
+    ("b".as_bytes(), 3),
+    ("bc".as_bytes(), 4),
+    ("c".as_bytes(), 5),
 ];
 
 // build a double-array trie binary
@@ -56,8 +56,8 @@ let da = DoubleArray::new(da_bytes.unwrap());
 for (key, value) in keyset {
     assert_eq!(da.exact_match_search(key), Some(*value as u32));
 }
-assert_eq!(da.exact_match_search("abc\0".as_bytes()), Some(2));
-assert_eq!(da.exact_match_search("abcd\0".as_bytes()), None);
+assert_eq!(da.exact_match_search("abc".as_bytes()), Some(2));
+assert_eq!(da.exact_match_search("abcd".as_bytes()), None);
 
 // common prefix search
 assert_eq!(
