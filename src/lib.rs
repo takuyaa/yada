@@ -28,32 +28,29 @@ where
     }
 
     fn exact_match_search_bytes(&self, key: &[u8]) -> Option<u32> {
-        let mut node_pos = 0 as UnitID; // traverse from root node
-        for &c in key.iter().take(key.len()) {
-            // assumes characters don't have NULL ('\0')
-            assert_ne!(c, 0);
+        // traverse from root node
+        let mut unit = self.get_unit(0 as UnitID)?;
 
-            let unit = self.get_unit(node_pos)?;
+        for &c in key.iter().take(key.len()) {
             assert!(!unit.is_leaf());
+            assert_ne!(c, 0); // assumes characters don't have NULL ('\0')
 
             // try to traverse node
-            node_pos = (unit.offset() ^ (c as u32)) as UnitID;
-            let unit = self.get_unit(node_pos)?;
+            let node_pos = (unit.offset() ^ (c as u32)) as UnitID;
+            unit = self.get_unit(node_pos)?;
 
             if c != unit.label() as u8 {
                 return None;
             }
         }
 
-        let unit = self.get_unit(node_pos)?;
         if !unit.has_leaf() {
             return None;
         }
 
         // traverse node by NULL ('\0')
-        node_pos = (unit.offset() ^ (0u32)) as UnitID;
-
-        let unit = self.get_unit(node_pos)?;
+        let node_pos = (unit.offset() ^ (0u32)) as UnitID;
+        unit = self.get_unit(node_pos)?;
         assert!(unit.is_leaf());
         assert!(unit.value() < (1 << 31));
 
