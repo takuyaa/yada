@@ -21,7 +21,7 @@ impl DoubleArrayBuilder {
 
     /// Builds a double-array trie with a `keyset` and returns it when build finished successfully.
     /// Otherwise, returns `None`.
-    /// The `keyset` must be sorted and each key must have a terminal character '\0'.
+    /// The `keyset` must be sorted.
     pub fn build<'a, T>(keyset: &[(T, u32)]) -> Option<Vec<u8>>
     where
         T: AsRef<[u8]>,
@@ -31,7 +31,7 @@ impl DoubleArrayBuilder {
 
     /// Builds a double-array trie with a `keyset` and returns it when build finished successfully.
     /// Otherwise, returns `None`.
-    /// The `keyset` must be sorted and each key must have a terminal character '\0'.
+    /// The `keyset` must be sorted.
     pub fn build_from_keyset<T>(&mut self, keyset: &[(T, u32)]) -> Option<Vec<u8>>
     where
         T: AsRef<[u8]>,
