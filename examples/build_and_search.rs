@@ -6,12 +6,12 @@ use yada::DoubleArray;
 fn main() {
     // make a keyset which have key-value pairs
     let keyset = &[
-        ("a\0".as_bytes(), 0),
-        ("ab\0".as_bytes(), 1),
-        ("abc\0".as_bytes(), 2),
-        ("b\0".as_bytes(), 3),
-        ("bc\0".as_bytes(), 4),
-        ("c\0".as_bytes(), 5),
+        ("a".as_bytes(), 0),
+        ("ab".as_bytes(), 1),
+        ("abc".as_bytes(), 2),
+        ("b".as_bytes(), 3),
+        ("bc".as_bytes(), 4),
+        ("c".as_bytes(), 5),
     ];
 
     // build a double-array trie binary
@@ -25,14 +25,14 @@ fn main() {
     for (key, value) in keyset {
         assert_eq!(da.exact_match_search(key), Some(*value as u32));
     }
-    assert_eq!(da.exact_match_search("aa\0".as_bytes()), None);
-    assert_eq!(da.exact_match_search("aba\0".as_bytes()), None);
-    assert_eq!(da.exact_match_search("abb\0".as_bytes()), None);
-    assert_eq!(da.exact_match_search("abcd\0".as_bytes()), None);
-    assert_eq!(da.exact_match_search("ba\0".as_bytes()), None);
-    assert_eq!(da.exact_match_search("bb\0".as_bytes()), None);
-    assert_eq!(da.exact_match_search("bcd\0".as_bytes()), None);
-    assert_eq!(da.exact_match_search("ca\0".as_bytes()), None);
+    assert_eq!(da.exact_match_search("aa".as_bytes()), None);
+    assert_eq!(da.exact_match_search("aba".as_bytes()), None);
+    assert_eq!(da.exact_match_search("abb".as_bytes()), None);
+    assert_eq!(da.exact_match_search("abcd".as_bytes()), None);
+    assert_eq!(da.exact_match_search("ba".as_bytes()), None);
+    assert_eq!(da.exact_match_search("bb".as_bytes()), None);
+    assert_eq!(da.exact_match_search("bcd".as_bytes()), None);
+    assert_eq!(da.exact_match_search("ca".as_bytes()), None);
 
     // common prefix search
     assert_eq!(
