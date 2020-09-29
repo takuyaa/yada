@@ -1,4 +1,5 @@
 use crate::unit::{Unit, UnitID};
+use std::collections::HashSet;
 
 const BLOCK_SIZE: usize = 256;
 const NUM_TARGET_BLOCKS: i32 = 16; // the number of target blocks to find offsets
@@ -9,13 +10,15 @@ const INVALID_PREV: u8 = 255; // 255 means that there is no previous unused unit
 #[derive(Debug)]
 pub struct DoubleArrayBuilder {
     pub blocks: Vec<DoubleArrayBlock>,
+    pub used_offsets: HashSet<u32>,
 }
 
 impl DoubleArrayBuilder {
     /// Constructs a new `DoubleArrayBuilder` with an empty `DoubleArrayBlock`.
     pub fn new() -> Self {
         Self {
-            blocks: vec![DoubleArrayBlock::new()],
+            blocks: vec![DoubleArrayBlock::new(0)],
+            used_offsets: HashSet::new(),
         }
     }
 
@@ -76,8 +79,15 @@ impl DoubleArrayBuilder {
         self.blocks.get_mut(unit_id / BLOCK_SIZE)
     }
 
+    fn extend_block(&mut self) -> &DoubleArrayBlock {
+        let block_id = self.blocks.len();
+        self.blocks.push(DoubleArrayBlock::new(block_id));
+        self.blocks.last().unwrap()
+    }
+
     fn extend_block_mut(&mut self) -> &mut DoubleArrayBlock {
-        self.blocks.push(DoubleArrayBlock::new());
+        let block_id = self.blocks.len();
+        self.blocks.push(DoubleArrayBlock::new(block_id));
         self.blocks.last_mut().unwrap()
     }
 
@@ -148,8 +158,17 @@ impl DoubleArrayBuilder {
         assert!(labels_.len() > 0);
 
         // search an offset where these children fits to unused positions.
-        let offset = self.find_offset(&labels_);
+        let offset: u32 = loop {
+            let offset = self.find_offset(&labels_);
+            if offset.is_some() {
+                break offset.unwrap();
+            }
+            self.extend_block();
+        };
         assert!(offset < 16_777_216); // offset must be represented as 23 bits integer
+
+        // mark the offset used
+        self.used_offsets.insert(offset);
 
         let has_leaf = labels_.first().filter(|&&x| x == 0).is_some();
 
@@ -196,27 +215,21 @@ impl DoubleArrayBuilder {
         Some(())
     }
 
-    fn find_offset(&mut self, labels: &Vec<u8>) -> u32 {
+    fn find_offset(&self, labels: &Vec<u8>) -> Option<u32> {
         let head_block = (self.blocks.len() as i32 - NUM_TARGET_BLOCKS).max(0) as usize;
-        let offset = self
-            .blocks
-            .iter_mut()
-            .enumerate()
+        self.blocks
+            .iter()
             .skip(head_block) // search for offset in last N blocks
-            .find_map(|(block_id, block)| {
-                block.find_offset(labels).map(|offset| (block_id, offset))
-            });
-        let (block_id, offset) = offset.unwrap_or_else(|| {
-            let new_block = self.extend_block_mut();
-
-            // offset should be always found in an empty block
-            let offset = new_block.find_offset(labels).unwrap();
-            let block_id = self.blocks.len() - 1;
-
-            (block_id, offset)
-        });
-
-        (block_id as u32) << 8 | offset as u32
+            .find_map(|block| {
+                // find the first valid offset in a block
+                for offset in block.find_offset(labels) {
+                    let offset_u32 = (block.id as u32) << 8 | offset as u32;
+                    if !self.used_offsets.contains(&offset_u32) {
+                        return Some((block.id as u32) << 8 | offset as u32);
+                    }
+                }
+                None
+            })
     }
 }
 
@@ -243,6 +256,7 @@ const DEFAULT_PREV_UNUSED: [u8; BLOCK_SIZE] = {
 
 /// A block that have a shard of a double-array and other useful data structures.
 pub struct DoubleArrayBlock {
+    pub id: usize,
     pub units: [Unit; BLOCK_SIZE],
     pub is_used: [bool; BLOCK_SIZE],
     pub head_unused: u8,
@@ -251,8 +265,9 @@ pub struct DoubleArrayBlock {
 }
 
 impl DoubleArrayBlock {
-    const fn new() -> Self {
+    const fn new(id: usize) -> Self {
         Self {
+            id,
             units: DEFAULT_UNITS,
             is_used: DEFAULT_IS_USED,
             head_unused: 0,
@@ -262,43 +277,12 @@ impl DoubleArrayBlock {
     }
 
     /// Finds a valid offset in this block.
-    fn find_offset(&mut self, labels: &Vec<u8>) -> Option<u8> {
+    fn find_offset<'a>(&'a self, labels: &'a Vec<u8>) -> impl Iterator<Item = u8> + 'a {
         assert!(labels.len() > 0);
-
-        // return if this block is full
-        if self.head_unused == INVALID_NEXT && self.is_used[0] == true {
-            assert!(self.is_used.iter().all(|is_used| *is_used)); // assert full
-            return None;
-        }
-        assert!(!self.is_used.iter().all(|is_used| *is_used)); // assert not full
-
-        let mut unused_id = self.head_unused;
-        loop {
-            assert!(!self.is_used[unused_id as usize]);
-
-            let first_label = *labels.first()?;
-            let offset = unused_id ^ first_label;
-            let all_unused = labels.iter().skip(1).all(|label| {
-                let id = offset ^ label;
-                match self.is_used.get(id as UnitID) {
-                    Some(is_used) => !*is_used,
-                    None => {
-                        // something is going wrong
-                        assert!(false);
-                        false
-                    }
-                }
-            });
-            if all_unused {
-                return Some(offset);
-            }
-
-            // try next unused_id
-            unused_id = self.next_unused[unused_id as usize];
-
-            if unused_id == INVALID_NEXT {
-                return None;
-            }
+        FindOffset {
+            unused_id: self.head_unused,
+            block: self,
+            labels,
         }
     }
 
@@ -324,6 +308,59 @@ impl DoubleArrayBlock {
         // maintain head_unused
         if id == self.head_unused {
             self.head_unused = next_id;
+        }
+    }
+}
+
+pub struct FindOffset<'a> {
+    unused_id: u8,
+    block: &'a DoubleArrayBlock,
+    labels: &'a Vec<u8>,
+}
+
+impl<'a> Iterator for FindOffset<'a> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.unused_id == INVALID_NEXT && self.block.is_used[self.unused_id as usize] == true {
+            return None;
+        }
+
+        // return if this block is full
+        if self.block.head_unused == INVALID_NEXT && self.block.is_used[0] == true {
+            assert!(self.block.is_used.iter().all(|is_used| *is_used)); // assert full
+            return None;
+        }
+        assert!(!self.block.is_used.iter().all(|is_used| *is_used)); // assert not full
+
+        loop {
+            assert!(!self.block.is_used[self.unused_id as usize]);
+
+            let first_label = *self.labels.first()?;
+            let offset = self.unused_id ^ first_label;
+
+            let all_unused = self.labels.iter().skip(1).all(|label| {
+                let id = offset ^ label;
+                match self.block.is_used.get(id as UnitID) {
+                    Some(is_used) => !*is_used,
+                    None => {
+                        // something is going wrong
+                        assert!(false);
+                        false
+                    }
+                }
+            });
+
+            // update unused_id to next unused node
+            self.unused_id = self.block.next_unused[self.unused_id as usize];
+
+            if all_unused {
+                return Some(offset);
+            }
+
+            if self.unused_id == INVALID_NEXT {
+                return None;
+            }
         }
     }
 }
