@@ -6,6 +6,7 @@ use std::convert::TryInto;
 use std::ops::Deref;
 
 /// A double array trie.
+#[derive(Clone)]
 pub struct DoubleArray<T>(pub T)
 where
     T: Deref<Target = [u8]>;
@@ -192,4 +193,65 @@ mod tests {
             vec![]
         );
     }
+
+    #[test]
+    fn test_clone_and_search() {
+        let keyset = &[
+            ("a".as_bytes(), 0),
+            ("ab".as_bytes(), 1),
+            ("aba".as_bytes(), 2),
+            ("ac".as_bytes(), 3),
+            ("acb".as_bytes(), 4),
+            ("acc".as_bytes(), 5),
+            ("ad".as_bytes(), 6),
+            ("ba".as_bytes(), 7),
+            ("bb".as_bytes(), 8),
+            ("bc".as_bytes(), 9),
+            ("c".as_bytes(), 10),
+            ("caa".as_bytes(), 11),
+        ];
+
+        let da_bytes = DoubleArrayBuilder::build(keyset);
+        assert!(da_bytes.is_some());
+
+        let da_orig = DoubleArray::new(da_bytes.unwrap());
+        let da = da_orig.clone();
+
+        for (key, value) in keyset {
+            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+        }
+        assert_eq!(da.exact_match_search("aa".as_bytes()), None);
+        assert_eq!(da.exact_match_search("abc".as_bytes()), None);
+        assert_eq!(da.exact_match_search("b".as_bytes()), None);
+        assert_eq!(da.exact_match_search("ca".as_bytes()), None);
+
+        assert_eq!(
+            da.common_prefix_search("a".as_bytes()).collect::<Vec<_>>(),
+            vec![(0, 1)]
+        );
+        assert_eq!(
+            da.common_prefix_search("aa".as_bytes()).collect::<Vec<_>>(),
+            vec![(0, 1)]
+        );
+        assert_eq!(
+            da.common_prefix_search("abbb".as_bytes())
+                .collect::<Vec<_>>(),
+            vec![(0, 1), (1, 2)]
+        );
+        assert_eq!(
+            da.common_prefix_search("abaa".as_bytes())
+                .collect::<Vec<_>>(),
+            vec![(0, 1), (1, 2), (2, 3)]
+        );
+        assert_eq!(
+            da.common_prefix_search("caa".as_bytes())
+                .collect::<Vec<_>>(),
+            vec![(10, 1), (11, 3)]
+        );
+        assert_eq!(
+            da.common_prefix_search("d".as_bytes()).collect::<Vec<_>>(),
+            vec![]
+        );
+    }
+
 }
