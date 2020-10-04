@@ -1,13 +1,13 @@
-use criterion::{Criterion, SamplingMode, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion, SamplingMode};
 use fnv::FnvHashMap;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::time::Duration;
 use yada::builder::DoubleArrayBuilder;
 use yada::DoubleArray;
-use std::time::Duration;
 
 fn bench_build(c: &mut Criterion) {
     let keyset = load_ipadic();
@@ -27,7 +27,10 @@ fn bench_build(c: &mut Criterion) {
 
 fn bench_search_sorted(c: &mut Criterion) {
     let keyset_sorted = load_ipadic();
-    println!("Start a search benchmark by sorted keys. #keys: {}", keyset_sorted.len());
+    println!(
+        "Start a search benchmark by sorted keys. #keys: {}",
+        keyset_sorted.len()
+    );
 
     let mut group = c.benchmark_group("search/sort");
     group.sample_size(50);
@@ -78,8 +81,11 @@ fn bench_search_sorted(c: &mut Criterion) {
     });
     group.bench_function("fst", |b| {
         let map = fst::Map::from_iter(
-            keyset_sorted.iter().map(|(key, value)| (key, *value as u64))
-        ).unwrap();
+            keyset_sorted
+                .iter()
+                .map(|(key, value)| (key, *value as u64)),
+        )
+        .unwrap();
         b.iter(|| {
             for (key, _) in keyset_sorted.as_slice() {
                 let value = map.get(key);
@@ -119,7 +125,10 @@ fn bench_search_sorted(c: &mut Criterion) {
 
 fn bench_search_random(c: &mut Criterion) {
     let keyset_sorted = load_ipadic();
-    println!("Start a search benchmark by random ordered keys. #keys: {}", keyset_sorted.len());
+    println!(
+        "Start a search benchmark by random ordered keys. #keys: {}",
+        keyset_sorted.len()
+    );
 
     // randomized keyset
     let mut rng = thread_rng();
@@ -175,8 +184,11 @@ fn bench_search_random(c: &mut Criterion) {
     });
     group.bench_function("fst", |b| {
         let map = fst::Map::from_iter(
-            keyset_sorted.iter().map(|(key, value)| (key, *value as u64))
-        ).unwrap();
+            keyset_sorted
+                .iter()
+                .map(|(key, value)| (key, *value as u64)),
+        )
+        .unwrap();
         b.iter(|| {
             for (key, _) in keyset_randomized.iter() {
                 let value = map.get(key);
@@ -228,5 +240,10 @@ fn load_ipadic() -> Vec<(String, u32)> {
     keyset
 }
 
-criterion_group!(benches, bench_build, bench_search_sorted, bench_search_random);
+criterion_group!(
+    benches,
+    bench_build,
+    bench_search_sorted,
+    bench_search_random
+);
 criterion_main!(benches);
