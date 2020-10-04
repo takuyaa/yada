@@ -32,7 +32,7 @@ fn bench_search_sorted(c: &mut Criterion) {
         keyset_sorted.len()
     );
 
-    let mut group = c.benchmark_group("search/sort");
+    let mut group = c.benchmark_group("search/sorted");
     group.sample_size(50);
     group.measurement_time(Duration::from_secs(5));
     group.sampling_mode(SamplingMode::Flat);
