@@ -10,13 +10,19 @@ use std::time::Duration;
 use yada::builder::DoubleArrayBuilder;
 use yada::DoubleArray;
 
+const BUILD_SAMPLE_SIZE: usize = 10;
+const BUILD_WARM_UP_TIME: Duration = Duration::from_secs(10);
+
+const SEARCH_SAMPLE_SIZE: usize = 10;
+const SEARCH_MEASURE_TIME: Duration = Duration::from_secs(1);
+
 fn bench_build_ipadic(c: &mut Criterion) {
     let keyset = load_ipadic();
 
     let mut group = c.benchmark_group("build/ipadic");
-    group.sample_size(20);
-    group.warm_up_time(Duration::from_secs(20));
-    group.measurement_time(Duration::from_secs(30));
+    group.sample_size(BUILD_SAMPLE_SIZE);
+    group.warm_up_time(BUILD_WARM_UP_TIME);
+    group.measurement_time(Duration::from_secs(10));
     group.sampling_mode(SamplingMode::Flat);
 
     group.bench_function("yada", |b| {
@@ -30,8 +36,24 @@ fn bench_build_unidic(c: &mut Criterion) {
     let keyset = load_unidic();
 
     let mut group = c.benchmark_group("build/unidic");
-    group.sample_size(20);
-    group.warm_up_time(Duration::from_secs(20));
+    group.sample_size(BUILD_SAMPLE_SIZE);
+    group.warm_up_time(BUILD_WARM_UP_TIME);
+    group.measurement_time(Duration::from_secs(15));
+    group.sampling_mode(SamplingMode::Flat);
+
+    group.bench_function("yada", |b| {
+        b.iter(|| DoubleArrayBuilder::build(keyset.as_slice()));
+    });
+
+    group.finish();
+}
+
+fn bench_build_kodic(c: &mut Criterion) {
+    let keyset = load_kodic();
+
+    let mut group = c.benchmark_group("build/kodic");
+    group.sample_size(BUILD_SAMPLE_SIZE);
+    group.warm_up_time(BUILD_WARM_UP_TIME);
     group.measurement_time(Duration::from_secs(30));
     group.sampling_mode(SamplingMode::Flat);
 
@@ -45,9 +67,6 @@ fn bench_build_unidic(c: &mut Criterion) {
 fn bench_search_sorted_ipadic(c: &mut Criterion) {
     let keyset_sorted = load_ipadic();
     let mut group = c.benchmark_group("search/sorted/ipadic");
-    group.sample_size(30);
-    group.measurement_time(Duration::from_secs(3));
-    group.sampling_mode(SamplingMode::Flat);
     add_search_bench_functions(&mut group, &keyset_sorted, &keyset_sorted);
     group.finish();
 }
@@ -55,9 +74,13 @@ fn bench_search_sorted_ipadic(c: &mut Criterion) {
 fn bench_search_sorted_unidic(c: &mut Criterion) {
     let keyset_sorted = load_unidic();
     let mut group = c.benchmark_group("search/sorted/unidic");
-    group.sample_size(30);
-    group.measurement_time(Duration::from_secs(3));
-    group.sampling_mode(SamplingMode::Flat);
+    add_search_bench_functions(&mut group, &keyset_sorted, &keyset_sorted);
+    group.finish();
+}
+
+fn bench_search_sorted_kodic(c: &mut Criterion) {
+    let keyset_sorted = load_kodic();
+    let mut group = c.benchmark_group("search/sorted/kodic");
     add_search_bench_functions(&mut group, &keyset_sorted, &keyset_sorted);
     group.finish();
 }
@@ -71,9 +94,6 @@ fn bench_search_random_ipadic(c: &mut Criterion) {
     keyset_randomized.as_mut_slice().shuffle(&mut rng);
 
     let mut group = c.benchmark_group("search/random/ipadic");
-    group.sample_size(30);
-    group.measurement_time(Duration::from_secs(3));
-    group.sampling_mode(SamplingMode::Flat);
     add_search_bench_functions(&mut group, &keyset_sorted, &keyset_randomized);
     group.finish();
 }
@@ -87,9 +107,19 @@ fn bench_search_random_unidic(c: &mut Criterion) {
     keyset_randomized.as_mut_slice().shuffle(&mut rng);
 
     let mut group = c.benchmark_group("search/random/unidic");
-    group.sample_size(30);
-    group.measurement_time(Duration::from_secs(3));
-    group.sampling_mode(SamplingMode::Flat);
+    add_search_bench_functions(&mut group, &keyset_sorted, &keyset_randomized);
+    group.finish();
+}
+
+fn bench_search_random_kodic(c: &mut Criterion) {
+    let keyset_sorted = load_kodic();
+
+    // randomized keyset
+    let mut rng = thread_rng();
+    let mut keyset_randomized = keyset_sorted.clone();
+    keyset_randomized.as_mut_slice().shuffle(&mut rng);
+
+    let mut group = c.benchmark_group("search/random/kodic");
     add_search_bench_functions(&mut group, &keyset_sorted, &keyset_randomized);
     group.finish();
 }
@@ -99,6 +129,10 @@ fn add_search_bench_functions(
     keyset_build: &Vec<(String, u32)>,
     keyset_search: &Vec<(String, u32)>,
 ) {
+    group.sample_size(SEARCH_SAMPLE_SIZE);
+    group.measurement_time(SEARCH_MEASURE_TIME);
+    group.sampling_mode(SamplingMode::Flat);
+
     group.bench_function("BTreeMap", |b| {
         let mut map = BTreeMap::new();
         for (key, value) in keyset_build.iter() {
@@ -188,6 +222,10 @@ fn load_unidic() -> Vec<(String, u32)> {
     load_dic("data/unidic-2.1.2.tsv")
 }
 
+fn load_kodic() -> Vec<(String, u32)> {
+    load_dic("data/kodic-2.1.1.tsv")
+}
+
 fn load_dic(path: &str) -> Vec<(String, u32)> {
     let file = File::open(path).unwrap();
     let mut keyset: Vec<(String, u32)> = vec![];
@@ -206,9 +244,12 @@ criterion_group!(
     benches,
     bench_build_ipadic,
     bench_build_unidic,
+    bench_build_kodic,
     bench_search_sorted_ipadic,
     bench_search_sorted_unidic,
+    bench_search_sorted_kodic,
     bench_search_random_ipadic,
     bench_search_random_unidic,
+    bench_search_random_kodic,
 );
 criterion_main!(benches);
