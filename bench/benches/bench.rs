@@ -26,9 +26,35 @@ fn bench_build_ipadic(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_build_unidic(c: &mut Criterion) {
+    let keyset = load_unidic();
+
+    let mut group = c.benchmark_group("build/unidic");
+    group.sample_size(20);
+    group.warm_up_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(30));
+    group.sampling_mode(SamplingMode::Flat);
+
+    group.bench_function("yada", |b| {
+        b.iter(|| DoubleArrayBuilder::build(keyset.as_slice()));
+    });
+
+    group.finish();
+}
+
 fn bench_search_sorted_ipadic(c: &mut Criterion) {
     let keyset_sorted = load_ipadic();
     let mut group = c.benchmark_group("search/sorted/ipadic");
+    group.sample_size(30);
+    group.measurement_time(Duration::from_secs(3));
+    group.sampling_mode(SamplingMode::Flat);
+    add_search_bench_functions(&mut group, &keyset_sorted, &keyset_sorted);
+    group.finish();
+}
+
+fn bench_search_sorted_unidic(c: &mut Criterion) {
+    let keyset_sorted = load_unidic();
+    let mut group = c.benchmark_group("search/sorted/unidic");
     group.sample_size(30);
     group.measurement_time(Duration::from_secs(3));
     group.sampling_mode(SamplingMode::Flat);
@@ -45,6 +71,22 @@ fn bench_search_random_ipadic(c: &mut Criterion) {
     keyset_randomized.as_mut_slice().shuffle(&mut rng);
 
     let mut group = c.benchmark_group("search/random/ipadic");
+    group.sample_size(30);
+    group.measurement_time(Duration::from_secs(3));
+    group.sampling_mode(SamplingMode::Flat);
+    add_search_bench_functions(&mut group, &keyset_sorted, &keyset_randomized);
+    group.finish();
+}
+
+fn bench_search_random_unidic(c: &mut Criterion) {
+    let keyset_sorted = load_unidic();
+
+    // randomized keyset
+    let mut rng = thread_rng();
+    let mut keyset_randomized = keyset_sorted.clone();
+    keyset_randomized.as_mut_slice().shuffle(&mut rng);
+
+    let mut group = c.benchmark_group("search/random/unidic");
     group.sample_size(30);
     group.measurement_time(Duration::from_secs(3));
     group.sampling_mode(SamplingMode::Flat);
@@ -142,6 +184,10 @@ fn load_ipadic() -> Vec<(String, u32)> {
     load_dic("data/ipadic-2.7.0.tsv")
 }
 
+fn load_unidic() -> Vec<(String, u32)> {
+    load_dic("data/unidic-2.1.2.tsv")
+}
+
 fn load_dic(path: &str) -> Vec<(String, u32)> {
     let file = File::open(path).unwrap();
     let mut keyset: Vec<(String, u32)> = vec![];
@@ -159,7 +205,10 @@ fn load_dic(path: &str) -> Vec<(String, u32)> {
 criterion_group!(
     benches,
     bench_build_ipadic,
+    bench_build_unidic,
     bench_search_sorted_ipadic,
+    bench_search_sorted_unidic,
     bench_search_random_ipadic,
+    bench_search_random_unidic,
 );
 criterion_main!(benches);
