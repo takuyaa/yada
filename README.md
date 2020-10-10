@@ -75,9 +75,9 @@ assert_eq!(
 
 - The value must be represented as a 31 bit unsigned integer, typed `u32`.
   - Yada uses the most significant bit (MSB) as a flag to distinguish between a value node and others.
-- The offset of an double-array node is 23 bit wide, so it can only represent up to
- ~8.3M nodes.
-  - It means this limitation results in the size upper bound ~33 MB of double-arrays.
+- The offset of an double-array node is 29 bits wide, so it can represent up to
+ ~536M nodes.
+  - It means this limitation results in the size upper bound ~2GB of double-arrays.
 
 ## License
 

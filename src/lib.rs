@@ -30,14 +30,15 @@ where
 
     fn exact_match_search_bytes(&self, key: &[u8]) -> Option<u32> {
         // traverse from root node
-        let mut unit = self.get_unit(0 as UnitID)?;
+        let mut node_pos = 0 as UnitID;
+        let mut unit = self.get_unit(node_pos)?;
 
         for &c in key.iter().take(key.len()) {
             assert!(!unit.is_leaf());
             assert_ne!(c, 0); // assumes characters don't have NULL ('\0')
 
             // try to traverse node
-            let node_pos = (unit.offset() ^ (c as u32)) as UnitID;
+            node_pos = (unit.offset() ^ node_pos as u32 ^ c as u32) as UnitID;
             unit = self.get_unit(node_pos)?;
 
             if c != unit.label() as u8 {
@@ -50,7 +51,7 @@ where
         }
 
         // traverse node by NULL ('\0')
-        let node_pos = (unit.offset() ^ (0u32)) as UnitID;
+        let node_pos = (unit.offset() ^ node_pos as u32 ^ 0u32) as UnitID;
         unit = self.get_unit(node_pos)?;
         assert!(unit.is_leaf());
         assert!(unit.value() < (1 << 31));
@@ -115,13 +116,13 @@ where
             let c = *self.key.get(self.key_pos)?;
             self.key_pos += 1;
 
-            self.unit_id = (unit.offset() ^ c as u32) as UnitID;
+            self.unit_id = (unit.offset() ^ self.unit_id as u32 ^ c as u32) as UnitID;
             let unit = self.double_array.get_unit(self.unit_id)?;
             if unit.label() != c as u32 {
                 return None;
             }
             if unit.has_leaf() {
-                let leaf_pos = unit.offset();
+                let leaf_pos = unit.offset() ^ self.unit_id as u32;
                 let leaf_unit = self.double_array.get_unit(leaf_pos as UnitID)?;
                 return Some((leaf_unit.value(), self.key_pos));
             }
@@ -253,5 +254,4 @@ mod tests {
             vec![]
         );
     }
-
 }

@@ -52,16 +52,29 @@ impl Unit {
         self.0 & ((1 << 31) | 0xFF)
     }
 
-    /// Returns an offset value within the unit.
+    /// Returns an offset value within the unit. If the offset extension flag is true, returns the
+    /// offset multiplied by 256.
     #[inline]
     pub fn offset(&self) -> u32 {
-        self.0 >> 9
+        (self.0 >> 10) << ((self.0 & (1 << 9)) >> 6)
     }
 
-    /// Sets an offset to the unit.
+    /// Sets an offset to the unit. `offset` should be a value less than or equal to 29 bits. If the
+    /// `offset` is greater than 21 bits, sets the offset extension flag and the `offset` without
+    /// lower 8 bits (then, lower 8 bits of the given `offset` should be 0).
     #[inline]
     pub fn set_offset(&mut self, offset: u32) {
-        self.0 = offset << 9 | (self.0 << 23 as u32) >> 23;
+        assert!(offset < (1u32 << 29));
+
+        if offset < (1u32 << 21) {
+            // don't extend offset
+            self.0 = offset << 10 | (self.0 << 23 as u32) >> 23;
+        } else {
+            // extend offset
+            assert_eq!((offset << 2) & (1 << 31), 0, "MSB of offset should be 0");
+            assert_eq!(offset & 0xFF, 0, "lower 8 bits of offset should be 0");
+            self.0 = offset << 2 | (1 << 9) | (self.0 << 23 as u32) >> 23; // with offset extension flag
+        }
     }
 
     /// Sets a `has_leaf` flag to the unit.
@@ -132,5 +145,49 @@ mod tests {
 
         unit.set_value(1 << 31);
         assert_eq!(unit.value(), 0);
+    }
+
+    #[test]
+    fn test_label() {
+        let unit = Unit::new();
+        assert_eq!(unit.label(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_label(0);
+        assert_eq!(unit.label(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_label(1);
+        assert_eq!(unit.label(), 1);
+
+        let mut unit = Unit::new();
+        unit.set_label(255);
+        assert_eq!(unit.label(), 255);
+    }
+
+    #[test]
+    fn test_offset() {
+        let unit = Unit::new();
+        assert_eq!(unit.offset(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_offset(0);
+        assert_eq!(unit.offset(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_offset(1);
+        assert_eq!(unit.offset(), 1);
+
+        let mut unit = Unit::new();
+        unit.set_offset((1 << 21) - 1);
+        assert_eq!(unit.offset(), (1 << 21) - 1);
+
+        let mut unit = Unit::new();
+        unit.set_offset(1 << 21);
+        assert_eq!(unit.offset(), 1 << 21);
+
+        let mut unit = Unit::new();
+        unit.set_offset(1 << 28);
+        assert_eq!(unit.offset(), 1 << 28);
     }
 }
