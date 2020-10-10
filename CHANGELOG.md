@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2020-10-11
+### Added
+- Add benchmarks.
+- Add file converter script for benchmarks.
+
+### Changed
+- Relax the maximum size of a double array.
+
 ## [0.3.2] - 2020-10-01
 ### Changed
 - Make the `DoubleArray` cloneable by [@johtani](https://github.com/johtani).
@@ -34,7 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/takuyaa/yada/compare/0.3.2...HEAD
+[Unreleased]: https://github.com/takuyaa/yada/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/takuyaa/yada/compare/0.3.2...0.4.0
 [0.3.2]: https://github.com/takuyaa/yada/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/takuyaa/yada/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/takuyaa/yada/compare/0.2.0...0.3.0
