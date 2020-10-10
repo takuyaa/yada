@@ -177,7 +177,7 @@ impl DoubleArrayBuilder {
         // upper 24 bits should be 0
         assert_eq!(parent_unit.offset(), 0);
         assert!(!parent_unit.has_leaf());
-        parent_unit.set_offset(offset);
+        parent_unit.set_offset(offset ^ unit_id as u32); // store the relative offset to the index
         parent_unit.set_has_leaf(has_leaf);
 
         // populate label or associated value to children node
