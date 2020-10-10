@@ -133,4 +133,22 @@ mod tests {
         unit.set_value(1 << 31);
         assert_eq!(unit.value(), 0);
     }
+
+    #[test]
+    fn test_label() {
+        let unit = Unit::new();
+        assert_eq!(unit.label(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_label(0);
+        assert_eq!(unit.label(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_label(1);
+        assert_eq!(unit.label(), 1);
+
+        let mut unit = Unit::new();
+        unit.set_label(255);
+        assert_eq!(unit.label(), 255);
+    }
 }
