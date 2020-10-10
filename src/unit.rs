@@ -151,4 +151,18 @@ mod tests {
         unit.set_label(255);
         assert_eq!(unit.label(), 255);
     }
+
+    #[test]
+    fn test_offset() {
+        let unit = Unit::new();
+        assert_eq!(unit.offset(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_offset(0);
+        assert_eq!(unit.offset(), 0);
+
+        let mut unit = Unit::new();
+        unit.set_offset(1);
+        assert_eq!(unit.offset(), 1);
+    }
 }
