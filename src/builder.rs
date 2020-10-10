@@ -159,13 +159,16 @@ impl DoubleArrayBuilder {
 
         // search an offset where these children fits to unused positions.
         let offset: u32 = loop {
-            let offset = self.find_offset(&labels_);
+            let offset = self.find_offset(unit_id, &labels_);
             if offset.is_some() {
                 break offset.unwrap();
             }
             self.extend_block();
         };
-        assert!(offset < 16_777_216); // offset must be represented as 23 bits integer
+        assert!(
+            offset < (1u32 << 29),
+            "offset must be represented as 29 bits integer"
+        );
 
         // mark the offset used
         self.used_offsets.insert(offset);
@@ -174,10 +177,16 @@ impl DoubleArrayBuilder {
 
         // populate offset and has_leaf flag to parent node
         let parent_unit = self.get_unit_mut(unit_id);
-        // upper 24 bits should be 0
-        assert_eq!(parent_unit.offset(), 0);
-        assert!(!parent_unit.has_leaf());
+        assert_eq!(
+            parent_unit.offset(),
+            0,
+            "offset() should return 0 before set_offset()"
+        );
         parent_unit.set_offset(offset ^ unit_id as u32); // store the relative offset to the index
+        assert!(
+            !parent_unit.has_leaf(),
+            "has_leaf() should return false before set_has_leaf()"
+        );
         parent_unit.set_has_leaf(has_leaf);
 
         // populate label or associated value to children node
@@ -215,14 +224,14 @@ impl DoubleArrayBuilder {
         Some(())
     }
 
-    fn find_offset(&self, labels: &Vec<u8>) -> Option<u32> {
+    fn find_offset(&self, unit_id: UnitID, labels: &Vec<u8>) -> Option<u32> {
         let head_block = (self.blocks.len() as i32 - NUM_TARGET_BLOCKS).max(0) as usize;
         self.blocks
             .iter()
             .skip(head_block) // search for offset in last N blocks
             .find_map(|block| {
                 // find the first valid offset in a block
-                for offset in block.find_offset(labels) {
+                for offset in block.find_offset(unit_id, labels) {
                     let offset_u32 = (block.id as u32) << 8 | offset as u32;
                     if !self.used_offsets.contains(&offset_u32) {
                         return Some((block.id as u32) << 8 | offset as u32);
@@ -277,11 +286,16 @@ impl DoubleArrayBlock {
     }
 
     /// Finds a valid offset in this block.
-    fn find_offset<'a>(&'a self, labels: &'a Vec<u8>) -> impl Iterator<Item = u8> + 'a {
+    fn find_offset<'a>(
+        &'a self,
+        unit_id: UnitID,
+        labels: &'a Vec<u8>,
+    ) -> impl Iterator<Item = u8> + 'a {
         assert!(labels.len() > 0);
         FindOffset {
             unused_id: self.head_unused,
             block: self,
+            unit_id,
             labels,
         }
     }
@@ -315,7 +329,31 @@ impl DoubleArrayBlock {
 pub struct FindOffset<'a> {
     unused_id: u8,
     block: &'a DoubleArrayBlock,
+    unit_id: UnitID, // parent node position to set the offset
     labels: &'a Vec<u8>,
+}
+
+impl<'a> FindOffset<'a> {
+    #[inline]
+    fn is_valid_offset(&self, offset: u8) -> bool {
+        let offset_u32 = (self.block.id as u32) << 8 | offset as u32;
+        let relative_offset = self.unit_id as u32 ^ offset_u32;
+        if (relative_offset & (0xFF << 21)) > 0 && (relative_offset & 0xFF) > 0 {
+            return false;
+        }
+
+        self.labels.iter().skip(1).all(|label| {
+            let id = offset ^ label;
+            match self.block.is_used.get(id as UnitID) {
+                Some(is_used) => !*is_used,
+                None => {
+                    // something is going wrong
+                    assert!(false, "DoubleArrayBlock is_used.get({}) was fault", id);
+                    false
+                }
+            }
+        })
+    }
 }
 
 impl<'a> Iterator for FindOffset<'a> {
@@ -339,22 +377,12 @@ impl<'a> Iterator for FindOffset<'a> {
             let first_label = *self.labels.first()?;
             let offset = self.unused_id ^ first_label;
 
-            let all_unused = self.labels.iter().skip(1).all(|label| {
-                let id = offset ^ label;
-                match self.block.is_used.get(id as UnitID) {
-                    Some(is_used) => !*is_used,
-                    None => {
-                        // something is going wrong
-                        assert!(false);
-                        false
-                    }
-                }
-            });
+            let is_valid_offset = self.is_valid_offset(offset);
 
             // update unused_id to next unused node
             self.unused_id = self.block.next_unused[self.unused_id as usize];
 
-            if all_unused {
+            if is_valid_offset {
                 return Some(offset);
             }
 
