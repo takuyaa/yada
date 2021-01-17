@@ -12,6 +12,7 @@ use yada::DoubleArray;
 
 const BUILD_SAMPLE_SIZE: usize = 10;
 const BUILD_WARM_UP_TIME: Duration = Duration::from_secs(10);
+const BUILD_MEASURE_TIME: Duration = Duration::from_secs(30);
 
 const SEARCH_SAMPLE_SIZE: usize = 10;
 const SEARCH_MEASURE_TIME: Duration = Duration::from_secs(1);
@@ -22,7 +23,7 @@ fn bench_build_ipadic(c: &mut Criterion) {
     let mut group = c.benchmark_group("build/ipadic");
     group.sample_size(BUILD_SAMPLE_SIZE);
     group.warm_up_time(BUILD_WARM_UP_TIME);
-    group.measurement_time(Duration::from_secs(10));
+    group.measurement_time(BUILD_MEASURE_TIME);
     group.sampling_mode(SamplingMode::Flat);
 
     group.bench_function("yada", |b| {
