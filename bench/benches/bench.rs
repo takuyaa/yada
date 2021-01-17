@@ -15,6 +15,7 @@ const BUILD_WARM_UP_TIME: Duration = Duration::from_secs(10);
 const BUILD_MEASURE_TIME: Duration = Duration::from_secs(30);
 
 const SEARCH_SAMPLE_SIZE: usize = 30;
+const SEARCH_WARM_UP_TIME: Duration = Duration::from_secs(5);
 const SEARCH_MEASURE_TIME: Duration = Duration::from_secs(10);
 
 fn bench_build_ipadic(c: &mut Criterion) {
@@ -131,6 +132,7 @@ fn add_search_bench_functions(
     keyset_search: &Vec<(String, u32)>,
 ) {
     group.sample_size(SEARCH_SAMPLE_SIZE);
+    group.warm_up_time(SEARCH_WARM_UP_TIME);
     group.measurement_time(SEARCH_MEASURE_TIME);
     group.sampling_mode(SamplingMode::Flat);
 
