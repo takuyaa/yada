@@ -85,7 +85,12 @@ where
 
     #[inline(always)]
     fn get_unit(&self, index: usize) -> Option<Unit> {
-        let b = &self.0[index * UNIT_SIZE..(index + 1) * UNIT_SIZE];
+        let b = unsafe {
+            // This unsafe method call does not lead unexpected transitions
+            // when a double array was built properly.
+            self.0
+                .get_unchecked(index * UNIT_SIZE..(index + 1) * UNIT_SIZE)
+        };
         match b.try_into() {
             Ok(bytes) => Some(Unit::from_u32(u32::from_le_bytes(bytes))),
             Err(_) => None,
