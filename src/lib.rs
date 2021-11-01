@@ -83,6 +83,7 @@ where
         }
     }
 
+    #[inline(always)]
     fn get_unit(&self, index: usize) -> Option<Unit> {
         let b = &self.0[index * UNIT_SIZE..(index + 1) * UNIT_SIZE];
         match b.try_into() {
@@ -109,6 +110,7 @@ where
 {
     type Item = (u32, usize);
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         while self.key_pos < self.key.len() {
             let unit = self.double_array.get_unit(self.unit_id)?;
