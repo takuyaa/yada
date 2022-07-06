@@ -8,6 +8,34 @@ pub const UNIT_SIZE: usize = std::mem::size_of::<u32>();
 #[derive(Copy, Clone)]
 pub struct Unit(u32);
 
+/// Unit represents one node of a double array trie. The bit width of each node is 32-bits.
+///
+/// The bit layout of a non-leaf node:
+///
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +---------------+-+-+-----------------------------------------+-+
+/// |     LABEL     |H|E|                 OFFSET                  |I|
+/// +---------------+-+-+-----------------------------------------+-+
+///
+///   LABEL                8-bits value that represents a label of the double array node.
+///   HAS_LEAF (H)         1-bit flag that indicates whether the node has leaf nodes or not.
+///   EXTEND_OFFSET (E)    1-bit flag that indicates whether the offset should be extended or not.
+///   OFFSET               21-bits value that represents an offset of the double array node.
+///   IS_LEAF (I)          1-bit flag that indicates whether the node is a leaf node or not.
+///                        This flag is always 0 in this case.
+///
+/// The bit layout of a leaf node:
+///
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-------------------------------------------------------------+-+
+/// |                            VALUE                            |I|
+/// +-------------------------------------------------------------+-+
+///
+///   VALUE                31-bits value that represents a value of the double array node.
+///   IS_LEAF (I)          1-bit flag that indicates whether the node is a leaf node or not.
+///                        This flag is always 1 in this case.
 impl Unit {
     /// Creates a new Unit.
     #[inline]
@@ -45,7 +73,7 @@ impl Unit {
         self.0 & 0x7FFFFFFF
     }
 
-    /// Returns a label (<= 255) if the unit is not a leaf. Otherwise, returns a integer greater
+    /// Returns a label (<= 255) if the unit is not a leaf. Otherwise, returns an integer value greater
     /// than 255.
     #[inline]
     pub fn label(&self) -> u32 {
