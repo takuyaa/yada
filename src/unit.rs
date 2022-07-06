@@ -73,7 +73,7 @@ impl Unit {
         self.0 & 0x7FFFFFFF
     }
 
-    /// Returns a label (<= 255) if the unit is not a leaf. Otherwise, returns a integer greater
+    /// Returns a label (<= 255) if the unit is not a leaf. Otherwise, returns an integer value greater
     /// than 255.
     #[inline]
     pub fn label(&self) -> u32 {
