@@ -203,6 +203,27 @@ mod tests {
     }
 
     #[test]
+    fn test_exact_match_search_corner_case() {
+        // A corner case of `exact_match_search()`.
+        // See https://github.com/takuyaa/yada/pull/28 for more details.
+        let keyset = &[
+            ("a".as_bytes(), 97),
+            ("ab".as_bytes(), 1),
+            ("de".as_bytes(), 2),
+        ];
+
+        let da_bytes = DoubleArrayBuilder::build(keyset);
+        assert!(da_bytes.is_some());
+
+        let da = DoubleArray::new(da_bytes.unwrap());
+
+        for (key, value) in keyset {
+            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+        }
+        assert_eq!(da.exact_match_search("dasss"), None);
+    }
+
+    #[test]
     fn test_clone_and_search() {
         let keyset = &[
             ("a".as_bytes(), 0),
