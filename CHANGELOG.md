@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2024-02-25
+### Changed
+- Fix a corner case of `exact_match_search` by [@BlueGreenMagick](https://github.com/BlueGreenMagick).
+- Add a test for the corner case.
+
 ## [0.5.0] - 2021-11-01
 ### Changed
 - Improve search performance using `get_unchecked`.
@@ -50,7 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/takuyaa/yada/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/takuyaa/yada/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/takuyaa/yada/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/takuyaa/yada/compare/0.4.1...0.5.0
+[0.4.1]: https://github.com/takuyaa/yada/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/takuyaa/yada/compare/0.3.2...0.4.0
 [0.3.2]: https://github.com/takuyaa/yada/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/takuyaa/yada/compare/0.3.0...0.3.1
