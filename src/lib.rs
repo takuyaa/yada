@@ -41,7 +41,7 @@ where
             node_pos = (unit.offset() ^ node_pos as u32 ^ c as u32) as UnitID;
             unit = self.get_unit(node_pos)?;
 
-            if c != unit.label() as u8 {
+            if unit.label() != c as u32 {
                 return None;
             }
         }
