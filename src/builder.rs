@@ -151,7 +151,7 @@ impl DoubleArrayBuilder {
         }
         assert!(labels.len() > 0);
 
-        let mut last_label = labels.last_mut().unwrap();
+        let last_label = labels.last_mut().unwrap();
         last_label.2 = end;
 
         let labels_ = labels.iter().map(|(key, _, _)| *key).collect::<Vec<_>>();
