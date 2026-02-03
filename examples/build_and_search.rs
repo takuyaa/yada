@@ -19,7 +19,7 @@ fn main() {
     assert!(da_bytes.is_some());
 
     // create a double-array trie instance
-    let da = DoubleArray::new(da_bytes.unwrap());
+    let da = DoubleArray::new(da_bytes.unwrap()).expect("Valid double array");
 
     // exact match search
     for (key, value) in keyset {

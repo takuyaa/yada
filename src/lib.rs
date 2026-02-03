@@ -16,8 +16,43 @@ where
     T: Deref<Target = [u8]>,
 {
     /// Creates a new `DoubleArray` with a byte slice.
-    pub fn new(bytes: T) -> Self {
+    /// Returns `None` if the input is not a valid double-array trie.
+    pub fn new(bytes: T) -> Option<Self> {
+        if Self::validate(&bytes) {
+            // SAFETY: `bytes` has just been checked to be a valid double array representation.
+            Some(unsafe { Self::new_unchecked(bytes) })
+        } else {
+            None
+        }
+    }
+
+    /// Creates a new `DoubleArray` with a byte slice without verification.
+    ///
+    /// # Safety
+    ///
+    /// `bytes` must be a valid double array representation.
+    pub unsafe fn new_unchecked(bytes: T) -> Self {
         Self { 0: bytes }
+    }
+
+    /// Returns whether `bytes` is a valid double array representation.
+    fn validate(bytes: &[u8]) -> bool {
+        let (n_units, remainder) = (bytes.len() / UNIT_SIZE, bytes.len() % UNIT_SIZE);
+        if remainder != 0 || n_units == 0 {
+            return false;
+        }
+
+        bytes.chunks_exact(UNIT_SIZE).enumerate().all(|(i, chunk)| {
+            let val = u32::from_le_bytes(chunk.try_into().unwrap());
+            let unit = Unit::from_u32(val);
+            if unit.is_leaf() {
+                true
+            } else {
+                let base = unit.offset() ^ (i as u32);
+                let max_child_index = base as usize | 0xff;
+                max_child_index < n_units
+            }
+        })
     }
 
     /// Finds a value associated with a `key`.
@@ -163,7 +198,7 @@ mod tests {
         let da_bytes = DoubleArrayBuilder::build(keyset);
         assert!(da_bytes.is_some());
 
-        let da = DoubleArray::new(da_bytes.unwrap());
+        let da = DoubleArray::new(da_bytes.unwrap()).unwrap();
 
         for (key, value) in keyset {
             assert_eq!(da.exact_match_search(key), Some(*value as u32));
@@ -215,7 +250,7 @@ mod tests {
         let da_bytes = DoubleArrayBuilder::build(keyset);
         assert!(da_bytes.is_some());
 
-        let da = DoubleArray::new(da_bytes.unwrap());
+        let da = DoubleArray::new(da_bytes.unwrap()).unwrap();
 
         for (key, value) in keyset {
             assert_eq!(da.exact_match_search(key), Some(*value as u32));
@@ -243,7 +278,7 @@ mod tests {
         let da_bytes = DoubleArrayBuilder::build(keyset);
         assert!(da_bytes.is_some());
 
-        let da_orig = DoubleArray::new(da_bytes.unwrap());
+        let da_orig = DoubleArray::new(da_bytes.unwrap()).unwrap();
         let da = da_orig.clone();
 
         for (key, value) in keyset {
@@ -281,5 +316,11 @@ mod tests {
             da.common_prefix_search("d".as_bytes()).collect::<Vec<_>>(),
             vec![]
         );
+    }
+
+    #[test]
+    fn test_invalid_new() {
+        let da = DoubleArray::new(vec![1, 2, 3]);
+        assert!(da.is_none());
     }
 }

@@ -192,7 +192,7 @@ fn add_search_bench_functions(
     });
     group.bench_function("exact_match_search", |b| {
         let da_bytes = DoubleArrayBuilder::build(keyset_build.as_slice()).unwrap();
-        let da = DoubleArray::new(da_bytes);
+        let da = DoubleArray::new(da_bytes).unwrap();
         b.iter(|| {
             for (key, _) in keyset_search.iter() {
                 let value = da.exact_match_search(key);
@@ -204,7 +204,7 @@ fn add_search_bench_functions(
     });
     group.bench_function("common_prefix_search", |b| {
         let da_bytes = DoubleArrayBuilder::build(keyset_build.as_slice()).unwrap();
-        let da = DoubleArray::new(da_bytes);
+        let da = DoubleArray::new(da_bytes).unwrap();
         b.iter(|| {
             for (key, _) in keyset_search.as_slice() {
                 let values = da.common_prefix_search(key);
