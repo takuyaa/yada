@@ -1,4 +1,5 @@
 pub mod builder;
+pub mod errors;
 pub mod unit;
 
 use crate::unit::{Unit, UnitID, UNIT_SIZE};
@@ -161,7 +162,7 @@ mod tests {
         ];
 
         let da_bytes = DoubleArrayBuilder::build(keyset);
-        assert!(da_bytes.is_some());
+        assert!(da_bytes.is_ok());
 
         let da = DoubleArray::new(da_bytes.unwrap());
 
@@ -213,7 +214,7 @@ mod tests {
         ];
 
         let da_bytes = DoubleArrayBuilder::build(keyset);
-        assert!(da_bytes.is_some());
+        assert!(da_bytes.is_ok());
 
         let da = DoubleArray::new(da_bytes.unwrap());
 
@@ -241,7 +242,7 @@ mod tests {
         ];
 
         let da_bytes = DoubleArrayBuilder::build(keyset);
-        assert!(da_bytes.is_some());
+        assert!(da_bytes.is_ok());
 
         let da_orig = DoubleArray::new(da_bytes.unwrap());
         let da = da_orig.clone();

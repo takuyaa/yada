@@ -16,7 +16,7 @@ fn main() {
 
     // build a double-array trie binary
     let da_bytes = DoubleArrayBuilder::build(keyset);
-    assert!(da_bytes.is_some());
+    assert!(da_bytes.is_ok());
 
     // create a double-array trie instance
     let da = DoubleArray::new(da_bytes.unwrap());

@@ -1,10 +1,14 @@
+use crate::errors::{Result, YadaError};
 use crate::unit::{Unit, UnitID};
+use std::cmp::Ordering;
 use std::collections::HashSet;
 
 const BLOCK_SIZE: usize = 256;
 const NUM_TARGET_BLOCKS: i32 = 16; // the number of target blocks to find offsets
 const INVALID_NEXT: u8 = 0; // 0 means that there is no next unused unit
 const INVALID_PREV: u8 = 255; // 255 means that there is no previous unused unit
+const MAX_VALUE: u32 = (1 << 31) - 1;
+const MAX_NUM_UNITS: u32 = 1 << 29;
 
 /// A double-array trie builder.
 #[derive(Debug)]
@@ -22,23 +26,26 @@ impl DoubleArrayBuilder {
         }
     }
 
-    /// Builds a double-array trie with a `keyset` and returns it when build finished successfully.
-    /// Otherwise, returns `None`.
+    /// Builds a double-array trie with a `keyset`.
     /// The `keyset` must be sorted.
-    pub fn build<'a, T>(keyset: &[(T, u32)]) -> Option<Vec<u8>>
+    pub fn build<T>(keyset: &[(T, u32)]) -> Result<Vec<u8>>
     where
         T: AsRef<[u8]>,
     {
         Self::new().build_from_keyset(keyset)
     }
 
-    /// Builds a double-array trie with a `keyset` and returns it when build finished successfully.
-    /// Otherwise, returns `None`.
+    /// Builds a double-array trie with a `keyset`.
     /// The `keyset` must be sorted.
-    pub fn build_from_keyset<T>(&mut self, keyset: &[(T, u32)]) -> Option<Vec<u8>>
+    pub fn build_from_keyset<T>(&mut self, keyset: &[(T, u32)]) -> Result<Vec<u8>>
     where
         T: AsRef<[u8]>,
     {
+        self.validate_keyset(keyset)?;
+        if self.num_used_units() != 0 || !self.used_offsets.is_empty() {
+            return Err(YadaError::setup("builder must not be reused."));
+        }
+
         self.reserve(0); // reserve root node
         self.build_recursive(keyset, 0, 0, keyset.len(), 0)?;
 
@@ -50,7 +57,7 @@ impl DoubleArrayBuilder {
             }
         }
 
-        Some(da_bytes)
+        Ok(da_bytes)
     }
 
     /// Returns the number of `Unit`s that this builder contains.
@@ -108,6 +115,42 @@ impl DoubleArrayBuilder {
         block.reserve((unit_id % BLOCK_SIZE) as u8);
     }
 
+    fn validate_keyset<T>(&self, keyset: &[(T, u32)]) -> Result<()>
+    where
+        T: AsRef<[u8]>,
+    {
+        if keyset.is_empty() {
+            return Err(YadaError::input("keyset must not be empty."));
+        }
+
+        for (key, value) in keyset {
+            let key = key.as_ref();
+            if key.is_empty() {
+                return Err(YadaError::input("keyset must not contain an empty key."));
+            }
+            if key.contains(&0) {
+                return Err(YadaError::input("keys must not contain NULL."));
+            }
+            if *value > MAX_VALUE {
+                return Err(YadaError::scale("input value", MAX_VALUE));
+            }
+        }
+
+        for pair in keyset.windows(2) {
+            match pair[0].0.as_ref().cmp(pair[1].0.as_ref()) {
+                Ordering::Less => {}
+                Ordering::Equal => {
+                    return Err(YadaError::input("keyset must not contain duplicated keys."))
+                }
+                Ordering::Greater => {
+                    return Err(YadaError::input("keyset must be sorted."));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn build_recursive<T>(
         &mut self,
         keyset: &[(T, u32)],
@@ -115,7 +158,7 @@ impl DoubleArrayBuilder {
         begin: usize,
         end: usize,
         unit_id: UnitID,
-    ) -> Option<()>
+    ) -> Result<()>
     where
         T: AsRef<[u8]>,
     {
@@ -124,17 +167,21 @@ impl DoubleArrayBuilder {
         let mut value = None;
 
         for i in begin..end {
+            // This unwrap is safe because the loop condition ensures `i` is within `begin..end`.
             let key_value = keyset.get(i).unwrap();
             let label = {
                 let key = key_value.0.as_ref();
                 if depth == key.len() {
                     0
                 } else {
-                    *key.get(depth)?
+                    // This unwrap is safe because the loop condition ensures `depth` is within `0..key.len()`.
+                    *key.get(depth).unwrap()
                 }
             };
             if label == 0 {
-                assert!(value.is_none()); // there is just one '\0' in a key
+                // This should be safe because validate_keyset() ensures
+                // there is no duplicate keys.
+                assert!(value.is_none(), "there is just one '\0' in a key");
                 value = Some(key_value.1);
             }
             match labels.last_mut() {
@@ -149,26 +196,24 @@ impl DoubleArrayBuilder {
                 }
             }
         }
-        assert!(labels.len() > 0);
 
+        // This should be safe because the recursive call
+        // to build_recursive() will not be made if labels is empty.
         let last_label = labels.last_mut().unwrap();
         last_label.2 = end;
 
         let labels_ = labels.iter().map(|(key, _, _)| *key).collect::<Vec<_>>();
-        assert!(labels_.len() > 0);
 
         // search an offset where these children fits to unused positions.
         let offset: u32 = loop {
-            let offset = self.find_offset(unit_id, &labels_);
-            if offset.is_some() {
-                break offset.unwrap();
+            if let Some(offset) = self.find_offset(unit_id, &labels_) {
+                break offset;
+            }
+            if self.num_units() >= MAX_NUM_UNITS {
+                return Err(YadaError::scale("num_units", MAX_NUM_UNITS));
             }
             self.extend_block();
         };
-        assert!(
-            offset < (1u32 << 29),
-            "offset must be represented as 29 bits integer"
-        );
 
         // mark the offset used
         self.used_offsets.insert(offset);
@@ -177,12 +222,18 @@ impl DoubleArrayBuilder {
 
         // populate offset and has_leaf flag to parent node
         let parent_unit = self.get_unit_mut(unit_id);
+
+        // This should be safe because build_recursive() logically ensures
+        // that unit_id is an initialized unit before this point.
         assert_eq!(
             parent_unit.offset(),
             0,
             "offset() should return 0 before set_offset()"
         );
         parent_unit.set_offset(offset ^ unit_id as u32); // store the relative offset to the index
+
+        // This should be safe because build_recursive() logically ensures
+        // that unit_id is an initialized unit before this point.
         assert!(
             !parent_unit.has_leaf(),
             "has_leaf() should return false before set_has_leaf()"
@@ -196,14 +247,15 @@ impl DoubleArrayBuilder {
 
             let unit = self.get_unit_mut(child_id);
 
-            // child node units should be empty
+            // This should be safe because find_offset() ensures that
+            // child node units are empty.
             assert_eq!(unit.offset(), 0);
             assert_eq!(unit.label(), 0);
             assert_eq!(unit.value(), 0);
             assert!(!unit.has_leaf());
 
             if label == 0 {
-                assert!(value.is_some());
+                // This should be safe logically.
                 unit.set_value(value.unwrap());
             } else {
                 unit.set_label(label);
@@ -212,16 +264,19 @@ impl DoubleArrayBuilder {
 
         // recursive call in depth-first order
         for (label, begin, end) in labels {
+            if label == 0 {
+                continue;
+            }
             self.build_recursive(
                 keyset,
                 depth + 1,
                 begin,
                 end,
                 (label as u32 ^ offset) as UnitID,
-            );
+            )?;
         }
 
-        Some(())
+        Ok(())
     }
 
     fn find_offset(&self, unit_id: UnitID, labels: &Vec<u8>) -> Option<u32> {
@@ -448,6 +503,7 @@ impl std::fmt::Debug for DoubleArrayBlock {
 #[cfg(test)]
 mod tests {
     use crate::builder::DoubleArrayBuilder;
+    use crate::errors::YadaError;
 
     #[test]
     fn test_build() {
@@ -466,10 +522,48 @@ mod tests {
 
         let mut builder = DoubleArrayBuilder::new();
         let da = builder.build_from_keyset(keyset);
-        assert!(da.is_some());
+        assert!(da.is_ok());
 
         assert!(0 < builder.num_units());
         assert!(0 < builder.num_used_units());
         assert!(builder.num_used_units() < builder.num_units());
+    }
+
+    #[test]
+    fn test_invalid_keyset() {
+        assert!(matches!(
+            DoubleArrayBuilder::build::<&[u8]>(&[]),
+            Err(YadaError::Input(_))
+        ));
+        assert!(matches!(
+            DoubleArrayBuilder::build(&[("".as_bytes(), 0)]),
+            Err(YadaError::Input(_))
+        ));
+        assert!(matches!(
+            DoubleArrayBuilder::build(&[("a\0b".as_bytes(), 0)]),
+            Err(YadaError::Input(_))
+        ));
+        assert!(matches!(
+            DoubleArrayBuilder::build(&[("b".as_bytes(), 0), ("a".as_bytes(), 1)]),
+            Err(YadaError::Input(_))
+        ));
+        assert!(matches!(
+            DoubleArrayBuilder::build(&[("a".as_bytes(), 0), ("a".as_bytes(), 1)]),
+            Err(YadaError::Input(_))
+        ));
+        assert!(matches!(
+            DoubleArrayBuilder::build(&[("a".as_bytes(), 1 << 31)]),
+            Err(YadaError::Scale(_))
+        ));
+    }
+
+    #[test]
+    fn test_builder_must_not_be_reused() {
+        let mut builder = DoubleArrayBuilder::new();
+        assert!(builder.build_from_keyset(&[("a".as_bytes(), 0)]).is_ok());
+        assert!(matches!(
+            builder.build_from_keyset(&[("b".as_bytes(), 1)]),
+            Err(YadaError::Setup(_))
+        ));
     }
 }

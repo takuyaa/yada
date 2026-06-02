@@ -41,7 +41,7 @@ let keyset = &[
 ];
 
 // build a double-array trie binary
-let da_bytes: Option<Vec<u8>> = DoubleArrayBuilder::build(keyset);
+let da_bytes: Result<Vec<u8>, _> = DoubleArrayBuilder::build(keyset);
 ```
 
 ### Search entries by keys
