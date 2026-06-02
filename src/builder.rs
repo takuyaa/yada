@@ -32,25 +32,14 @@ impl DoubleArrayBuilder {
     where
         T: AsRef<[u8]>,
     {
-        Self::new().build_from_keyset(keyset)
-    }
+        let mut builder = Self::new();
+        builder.validate_keyset(keyset)?;
 
-    /// Builds a double-array trie with a `keyset`.
-    /// The `keyset` must be sorted.
-    pub fn build_from_keyset<T>(&mut self, keyset: &[(T, u32)]) -> Result<Vec<u8>>
-    where
-        T: AsRef<[u8]>,
-    {
-        self.validate_keyset(keyset)?;
-        if self.num_used_units() != 0 || !self.used_offsets.is_empty() {
-            return Err(YadaError::setup("builder must not be reused."));
-        }
+        builder.reserve(0); // reserve root node
+        builder.build_recursive(keyset, 0, 0, keyset.len(), 0)?;
 
-        self.reserve(0); // reserve root node
-        self.build_recursive(keyset, 0, 0, keyset.len(), 0)?;
-
-        let mut da_bytes = Vec::with_capacity(self.blocks.len() * BLOCK_SIZE);
-        for block in &self.blocks {
+        let mut da_bytes = Vec::with_capacity(builder.blocks.len() * BLOCK_SIZE);
+        for block in &builder.blocks {
             for unit in block.units.iter() {
                 let bytes = unit.as_u32().to_le_bytes();
                 da_bytes.extend_from_slice(&bytes);
@@ -520,13 +509,8 @@ mod tests {
             ("abcdef".as_bytes(), 0),
         ];
 
-        let mut builder = DoubleArrayBuilder::new();
-        let da = builder.build_from_keyset(keyset);
+        let da = DoubleArrayBuilder::build(keyset);
         assert!(da.is_ok());
-
-        assert!(0 < builder.num_units());
-        assert!(0 < builder.num_used_units());
-        assert!(builder.num_used_units() < builder.num_units());
     }
 
     #[test]
@@ -554,16 +538,6 @@ mod tests {
         assert!(matches!(
             DoubleArrayBuilder::build(&[("a".as_bytes(), 1 << 31)]),
             Err(YadaError::Scale(_))
-        ));
-    }
-
-    #[test]
-    fn test_builder_must_not_be_reused() {
-        let mut builder = DoubleArrayBuilder::new();
-        assert!(builder.build_from_keyset(&[("a".as_bytes(), 0)]).is_ok());
-        assert!(matches!(
-            builder.build_from_keyset(&[("b".as_bytes(), 1)]),
-            Err(YadaError::Setup(_))
         ));
     }
 }

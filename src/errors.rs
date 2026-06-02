@@ -34,10 +34,6 @@ impl YadaError {
         Self::Input(InputError { msg })
     }
 
-    pub(crate) const fn setup(msg: &'static str) -> Self {
-        Self::Setup(SetupError { msg })
-    }
-
     pub(crate) const fn scale(arg: &'static str, max: u32) -> Self {
         Self::Scale(ScaleError { arg, max })
     }
