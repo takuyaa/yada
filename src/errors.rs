@@ -5,61 +5,46 @@ use std::{fmt, result};
 pub type Result<T, E = YadaError> = result::Result<T, E>;
 
 /// Errors in Yada.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum YadaError {
-    /// Contains [`InputError`].
-    Input(InputError),
+    /// The keyset is empty.
+    EmptyKeyset,
 
-    /// Contains [`ScaleError`].
-    Scale(ScaleError),
+    /// The keyset contains an empty key.
+    EmptyKey,
+
+    /// A key contains a null byte.
+    NullByte,
+
+    /// The keyset contains duplicated keys.
+    DuplicateKey,
+
+    /// The keyset is not sorted.
+    UnsortedKeyset,
+
+    /// An input value exceeds the maximum value.
+    ValueTooLarge { max: u32 },
+
+    /// The resulting trie exceeds the maximum number of units.
+    TooManyUnits { max: u32 },
 }
 
 impl fmt::Display for YadaError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Input(e) => e.fmt(f),
-            Self::Scale(e) => e.fmt(f),
+            Self::EmptyKeyset => write!(f, "keyset must not be empty"),
+            Self::EmptyKey => write!(f, "keyset must not contain an empty key"),
+            Self::NullByte => write!(f, "keys must not contain NULL"),
+            Self::DuplicateKey => write!(f, "keyset must not contain duplicated keys"),
+            Self::UnsortedKeyset => write!(f, "keyset must be sorted"),
+            Self::ValueTooLarge { max } => {
+                write!(f, "input value must be no greater than {max}")
+            }
+            Self::TooManyUnits { max } => {
+                write!(f, "num_units must be no greater than {max}")
+            }
         }
     }
 }
 
 impl std::error::Error for YadaError {}
-
-impl YadaError {
-    pub(crate) const fn input(msg: &'static str) -> Self {
-        Self::Input(InputError { msg })
-    }
-
-    pub(crate) const fn scale(arg: &'static str, max: u32) -> Self {
-        Self::Scale(ScaleError { arg, max })
-    }
-}
-
-/// Error used when the input argument is invalid.
-#[derive(Debug)]
-pub struct InputError {
-    msg: &'static str,
-}
-
-impl fmt::Display for InputError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "InputError: {}", self.msg)
-    }
-}
-
-/// Error used when the scale of a resulting trie exceeds the expected one.
-#[derive(Debug)]
-pub struct ScaleError {
-    arg: &'static str,
-    max: u32,
-}
-
-impl fmt::Display for ScaleError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "ScaleError: {} must be no greater than {}",
-            self.arg, self.max
-        )
-    }
-}

@@ -109,30 +109,28 @@ impl DoubleArrayBuilder {
         T: AsRef<[u8]>,
     {
         if keyset.is_empty() {
-            return Err(YadaError::input("keyset must not be empty."));
+            return Err(YadaError::EmptyKeyset);
         }
 
         for (key, value) in keyset {
             let key = key.as_ref();
             if key.is_empty() {
-                return Err(YadaError::input("keyset must not contain an empty key."));
+                return Err(YadaError::EmptyKey);
             }
             if key.contains(&0) {
-                return Err(YadaError::input("keys must not contain NULL."));
+                return Err(YadaError::NullByte);
             }
             if *value > MAX_VALUE {
-                return Err(YadaError::scale("input value", MAX_VALUE));
+                return Err(YadaError::ValueTooLarge { max: MAX_VALUE });
             }
         }
 
         for pair in keyset.windows(2) {
             match pair[0].0.as_ref().cmp(pair[1].0.as_ref()) {
                 Ordering::Less => {}
-                Ordering::Equal => {
-                    return Err(YadaError::input("keyset must not contain duplicated keys."))
-                }
+                Ordering::Equal => return Err(YadaError::DuplicateKey),
                 Ordering::Greater => {
-                    return Err(YadaError::input("keyset must be sorted."));
+                    return Err(YadaError::UnsortedKeyset);
                 }
             }
         }
@@ -199,7 +197,7 @@ impl DoubleArrayBuilder {
                 break offset;
             }
             if self.num_units() >= MAX_NUM_UNITS {
-                return Err(YadaError::scale("num_units", MAX_NUM_UNITS));
+                return Err(YadaError::TooManyUnits { max: MAX_NUM_UNITS });
             }
             self.extend_block();
         };
@@ -517,27 +515,27 @@ mod tests {
     fn test_invalid_keyset() {
         assert!(matches!(
             DoubleArrayBuilder::build::<&[u8]>(&[]),
-            Err(YadaError::Input(_))
+            Err(YadaError::EmptyKeyset)
         ));
         assert!(matches!(
             DoubleArrayBuilder::build(&[("".as_bytes(), 0)]),
-            Err(YadaError::Input(_))
+            Err(YadaError::EmptyKey)
         ));
         assert!(matches!(
             DoubleArrayBuilder::build(&[("a\0b".as_bytes(), 0)]),
-            Err(YadaError::Input(_))
+            Err(YadaError::NullByte)
         ));
         assert!(matches!(
             DoubleArrayBuilder::build(&[("b".as_bytes(), 0), ("a".as_bytes(), 1)]),
-            Err(YadaError::Input(_))
+            Err(YadaError::UnsortedKeyset)
         ));
         assert!(matches!(
             DoubleArrayBuilder::build(&[("a".as_bytes(), 0), ("a".as_bytes(), 1)]),
-            Err(YadaError::Input(_))
+            Err(YadaError::DuplicateKey)
         ));
         assert!(matches!(
             DoubleArrayBuilder::build(&[("a".as_bytes(), 1 << 31)]),
-            Err(YadaError::Scale(_))
+            Err(YadaError::ValueTooLarge { max }) if max == super::MAX_VALUE
         ));
     }
 }
