@@ -10,9 +10,6 @@ pub enum YadaError {
     /// Contains [`InputError`].
     Input(InputError),
 
-    /// Contains [`SetupError`].
-    Setup(SetupError),
-
     /// Contains [`ScaleError`].
     Scale(ScaleError),
 }
@@ -21,7 +18,6 @@ impl fmt::Display for YadaError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Input(e) => e.fmt(f),
-            Self::Setup(e) => e.fmt(f),
             Self::Scale(e) => e.fmt(f),
         }
     }
@@ -48,18 +44,6 @@ pub struct InputError {
 impl fmt::Display for InputError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "InputError: {}", self.msg)
-    }
-}
-
-/// Error used when the setup is invalid.
-#[derive(Debug)]
-pub struct SetupError {
-    msg: &'static str,
-}
-
-impl fmt::Display for SetupError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "SetupError: {}", self.msg)
     }
 }
 
