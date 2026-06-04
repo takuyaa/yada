@@ -7,8 +7,8 @@ const BLOCK_SIZE: usize = 256;
 const NUM_TARGET_BLOCKS: i32 = 16; // the number of target blocks to find offsets
 const INVALID_NEXT: u8 = 0; // 0 means that there is no next unused unit
 const INVALID_PREV: u8 = 255; // 255 means that there is no previous unused unit
-const MAX_VALUE: u32 = (1 << 31) - 1;
-const MAX_NUM_UNITS: u32 = 1 << 29;
+const MAX_VALUE: u32 = (1 << 31) - 1; // the maximum value that can be stored in a unit
+const MAX_NUM_UNITS: u32 = 1 << 29; // the maximum number of units that can be stored
 
 /// A double-array trie builder.
 #[derive(Debug)]
@@ -154,14 +154,16 @@ impl DoubleArrayBuilder {
         let mut value = None;
 
         for i in begin..end {
-            // This unwrap is safe because the loop condition ensures `i` is within `begin..end`.
+            // This unwrap is safe because the recursive call
+            // ensures `i` is within `begin..end`.
             let key_value = keyset.get(i).unwrap();
             let label = {
                 let key = key_value.0.as_ref();
                 if depth == key.len() {
                     0
                 } else {
-                    // This unwrap is safe because the loop condition ensures `depth` is within `0..key.len()`.
+                    // This unwrap is safe because the recursive call
+                    // ensures `depth` is within `0..key.len()`.
                     *key.get(depth).unwrap()
                 }
             };
@@ -184,8 +186,8 @@ impl DoubleArrayBuilder {
             }
         }
 
-        // This should be safe because the recursive call
-        // to build_recursive() will not be made if labels is empty.
+        // This unwrap is safe because the recursive call
+        // ensures begin..end is not empty.
         let last_label = labels.last_mut().unwrap();
         last_label.2 = end;
 
@@ -210,7 +212,7 @@ impl DoubleArrayBuilder {
         // populate offset and has_leaf flag to parent node
         let parent_unit = self.get_unit_mut(unit_id);
 
-        // This should be safe because build_recursive() logically ensures
+        // This should be safe because the recursive call ensures
         // that unit_id is an initialized unit before this point.
         assert_eq!(
             parent_unit.offset(),
@@ -219,7 +221,7 @@ impl DoubleArrayBuilder {
         );
         parent_unit.set_offset(offset ^ unit_id as u32); // store the relative offset to the index
 
-        // This should be safe because build_recursive() logically ensures
+        // This should be safe because the recursive call ensures
         // that unit_id is an initialized unit before this point.
         assert!(
             !parent_unit.has_leaf(),
@@ -234,15 +236,14 @@ impl DoubleArrayBuilder {
 
             let unit = self.get_unit_mut(child_id);
 
-            // This should be safe because find_offset() ensures that
-            // child node units are empty.
+            // These should be safe because find_offset() ensures
+            // that child node units are empty.
             assert_eq!(unit.offset(), 0);
             assert_eq!(unit.label(), 0);
             assert_eq!(unit.value(), 0);
             assert!(!unit.has_leaf());
 
             if label == 0 {
-                // This should be safe logically.
                 unit.set_value(value.unwrap());
             } else {
                 unit.set_label(label);
@@ -251,6 +252,7 @@ impl DoubleArrayBuilder {
 
         // recursive call in depth-first order
         for (label, begin, end) in labels {
+            // skip leaf node because it has no children
             if label == 0 {
                 continue;
             }
