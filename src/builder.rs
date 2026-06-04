@@ -525,30 +525,52 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_keyset() {
-        assert!(matches!(
-            DoubleArrayBuilder::build::<&[u8]>(&[]),
-            Err(YadaError::EmptyKeyset)
-        ));
-        assert!(matches!(
-            DoubleArrayBuilder::build(&[("".as_bytes(), 0)]),
-            Err(YadaError::EmptyKey)
-        ));
-        assert!(matches!(
-            DoubleArrayBuilder::build(&[("a\0b".as_bytes(), 0)]),
-            Err(YadaError::NullByte)
-        ));
-        assert!(matches!(
-            DoubleArrayBuilder::build(&[("b".as_bytes(), 0), ("a".as_bytes(), 1)]),
-            Err(YadaError::UnsortedKeyset)
-        ));
-        assert!(matches!(
-            DoubleArrayBuilder::build(&[("a".as_bytes(), 0), ("a".as_bytes(), 1)]),
-            Err(YadaError::DuplicateKey)
-        ));
-        assert!(matches!(
-            DoubleArrayBuilder::build(&[("a".as_bytes(), 1 << 31)]),
-            Err(YadaError::ValueTooLarge { max }) if max == super::MAX_VALUE
-        ));
+    fn test_empty_keyset() {
+        assert_eq!(
+            DoubleArrayBuilder::build::<&[u8]>(&[]).unwrap_err(),
+            YadaError::EmptyKeyset
+        );
+    }
+
+    #[test]
+    fn test_empty_key() {
+        assert_eq!(
+            DoubleArrayBuilder::build(&[("".as_bytes(), 0)]).unwrap_err(),
+            YadaError::EmptyKey
+        );
+    }
+
+    #[test]
+    fn test_null_byte_in_key() {
+        assert_eq!(
+            DoubleArrayBuilder::build(&[("a\0b".as_bytes(), 0)]).unwrap_err(),
+            YadaError::NullByte
+        );
+    }
+
+    #[test]
+    fn test_unsorted_keyset() {
+        assert_eq!(
+            DoubleArrayBuilder::build(&[("b".as_bytes(), 0), ("a".as_bytes(), 1)]).unwrap_err(),
+            YadaError::UnsortedKeyset
+        );
+    }
+
+    #[test]
+    fn test_duplicate_key() {
+        assert_eq!(
+            DoubleArrayBuilder::build(&[("a".as_bytes(), 0), ("a".as_bytes(), 1)]).unwrap_err(),
+            YadaError::DuplicateKey
+        );
+    }
+
+    #[test]
+    fn test_too_large_value() {
+        assert_eq!(
+            DoubleArrayBuilder::build(&[("a".as_bytes(), 1 << 31)]).unwrap_err(),
+            YadaError::ValueTooLarge {
+                max: super::MAX_VALUE
+            }
+        );
     }
 }
