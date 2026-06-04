@@ -27,10 +27,13 @@ See also [example code](examples/build_and_search.rs) for more details.
 
 ### Build a double-array trie
 
+`DoubleArrayBuilder::build` takes a sorted keyset of `(key, value)` pairs and
+returns the serialized double-array trie bytes.
+
 ```rust
 use yada::builder::DoubleArrayBuilder;
 
-// make a keyset which have key-value pairs
+// Make a sorted keyset of key-value pairs.
 let keyset = &[
     ("a".as_bytes(), 0),
     ("ab".as_bytes(), 1),
@@ -40,8 +43,8 @@ let keyset = &[
     ("c".as_bytes(), 5),
 ];
 
-// build a double-array trie binary
-let da_bytes: Result<Vec<u8>, _> = DoubleArrayBuilder::build(keyset);
+// Build a double-array trie binary.
+let da_bytes = DoubleArrayBuilder::build(keyset)?;
 ```
 
 ### Search entries by keys

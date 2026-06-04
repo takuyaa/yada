@@ -26,8 +26,19 @@ impl DoubleArrayBuilder {
         }
     }
 
-    /// Builds a double-array trie with a `keyset`.
-    /// The `keyset` must be sorted.
+    /// Builds a serialized double-array trie from a `keyset`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    ///
+    /// - the keyset is empty
+    /// - the keyset contains an empty key
+    /// - a key contains a NUL byte (`0x00`)
+    /// - the keyset contains duplicate keys
+    /// - the keyset is not sorted in bytewise lexicographic order
+    /// - a value is greater than `2^31 - 1`
+    /// - the resulting trie would contain more than `2^29` units
     pub fn build<T>(keyset: &[(T, u32)]) -> Result<Vec<u8>>
     where
         T: AsRef<[u8]>,
