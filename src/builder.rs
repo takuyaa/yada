@@ -43,9 +43,9 @@ impl DoubleArrayBuilder {
     where
         T: AsRef<[u8]>,
     {
-        let mut builder = Self::new();
         Self::validate_keyset(keyset)?;
 
+        let mut builder = Self::new();
         builder.reserve(0); // reserve root node
         builder.build_recursive(keyset, 0, 0, keyset.len(), 0)?;
 
