@@ -181,7 +181,7 @@ impl DoubleArrayBuilder {
             if label == 0 {
                 // This should be safe because validate_keyset() ensures
                 // there is no duplicate keys.
-                assert!(value.is_none(), "there is just one '\0' in a key");
+                assert!(value.is_none(), r"there is just one '\0' in a key");
                 value = Some(key_value.1);
             }
             match labels.last_mut() {
