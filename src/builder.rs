@@ -17,6 +17,12 @@ pub struct DoubleArrayBuilder {
     pub used_offsets: HashSet<u32>,
 }
 
+impl Default for DoubleArrayBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DoubleArrayBuilder {
     /// Constructs a new `DoubleArrayBuilder` with an empty `DoubleArrayBlock`.
     pub fn new() -> Self {
@@ -346,7 +352,7 @@ impl DoubleArrayBlock {
         unit_id: UnitID,
         labels: &'a Vec<u8>,
     ) -> impl Iterator<Item = u8> + 'a {
-        assert!(labels.len() > 0);
+        assert!(!labels.is_empty());
         FindOffset {
             unused_id: self.head_unused,
             block: self,
@@ -401,11 +407,7 @@ impl<'a> FindOffset<'a> {
             let id = offset ^ label;
             match self.block.is_used.get(id as UnitID) {
                 Some(is_used) => !*is_used,
-                None => {
-                    // something is going wrong
-                    assert!(false, "DoubleArrayBlock is_used.get({}) was fault", id);
-                    false
-                }
+                None => panic!("DoubleArrayBlock is_used.get({}) was fault", id),
             }
         })
     }
@@ -415,12 +417,12 @@ impl<'a> Iterator for FindOffset<'a> {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.unused_id == INVALID_NEXT && self.block.is_used[self.unused_id as usize] == true {
+        if self.unused_id == INVALID_NEXT && self.block.is_used[self.unused_id as usize] {
             return None;
         }
 
         // return if this block is full
-        if self.block.head_unused == INVALID_NEXT && self.block.is_used[0] == true {
+        if self.block.head_unused == INVALID_NEXT && self.block.is_used[0] {
             assert!(self.block.is_used.iter().all(|is_used| *is_used)); // assert full
             return None;
         }

@@ -22,7 +22,7 @@ fn main() -> Result<(), Error> {
 
     for line in io::stdin().lock().lines() {
         let line = line?;
-        lexicon.push(line.split(',').nth(0).unwrap().to_string());
+        lexicon.push(line.split(',').next().unwrap().to_string());
     }
 
     // unique keys

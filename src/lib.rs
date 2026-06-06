@@ -18,7 +18,7 @@ where
 {
     /// Creates a new `DoubleArray` with a byte slice.
     pub fn new(bytes: T) -> Self {
-        Self { 0: bytes }
+        Self(bytes)
     }
 
     /// Finds a value associated with a `key`.
@@ -52,7 +52,7 @@ where
         }
 
         // traverse node by NULL ('\0')
-        let node_pos = (unit.offset() ^ node_pos as u32 ^ 0u32) as UnitID;
+        let node_pos = (unit.offset() ^ node_pos as u32) as UnitID;
         unit = self.get_unit(node_pos)?;
         assert!(unit.is_leaf());
         assert!(unit.value() < (1 << 31));
