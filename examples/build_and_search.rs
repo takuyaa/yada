@@ -23,7 +23,7 @@ fn main() {
 
     // exact match search
     for (key, value) in keyset {
-        assert_eq!(da.exact_match_search(key), Some(*value as u32));
+        assert_eq!(da.exact_match_search(key), Some(*value));
     }
     assert_eq!(da.exact_match_search("aa".as_bytes()), None);
     assert_eq!(da.exact_match_search("aba".as_bytes()), None);

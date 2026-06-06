@@ -5,9 +5,7 @@ pub type UnitID = usize;
 pub const UNIT_SIZE: usize = std::mem::size_of::<u32>();
 
 /// An unit represents an element in a double-array.
-#[derive(Copy, Clone)]
-pub struct Unit(u32);
-
+///
 /// Unit represents one node of a double array trie. The bit width of each node is 32-bits.
 ///
 /// The bit layout of a non-leaf node:
@@ -36,6 +34,15 @@ pub struct Unit(u32);
 ///   VALUE                31-bits value that represents a value of the double array node.
 ///   IS_LEAF (I)          1-bit flag that indicates whether the node is a leaf node or not.
 ///                        This flag is always 1 in this case.
+#[derive(Copy, Clone)]
+pub struct Unit(u32);
+
+impl Default for Unit {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Unit {
     /// Creates a new Unit.
     #[inline]
@@ -96,12 +103,12 @@ impl Unit {
 
         if offset < (1u32 << 21) {
             // don't extend offset
-            self.0 = offset << 10 | (self.0 << 23 as u32) >> 23;
+            self.0 = offset << 10 | (self.0 << 23_u32) >> 23;
         } else {
             // extend offset
             assert_eq!((offset << 2) & (1 << 31), 0, "MSB of offset should be 0");
             assert_eq!(offset & 0xFF, 0, "lower 8 bits of offset should be 0");
-            self.0 = offset << 2 | (1 << 9) | (self.0 << 23 as u32) >> 23; // with offset extension flag
+            self.0 = offset << 2 | (1 << 9) | (self.0 << 23_u32) >> 23; // with offset extension flag
         }
     }
 
@@ -126,16 +133,16 @@ impl Unit {
     pub fn set_value(&mut self, value: u32) {
         self.0 = value | 1 << 31
     }
+}
 
-    /// Returns a string representation of the unit.
-    pub fn to_string(&self) -> String {
+impl std::fmt::Display for Unit {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.is_leaf() {
-            // leaf node
-            format!("Unit {{ value: {} }}", self.value()).to_string()
+            write!(f, "Unit {{ value: {} }}", self.value())
         } else {
-            // internal node
             let label = self.label();
-            format!(
+            write!(
+                f,
                 "Unit {{ offset: {}, label: {}, has_leaf: {} }}",
                 self.offset(),
                 match label {
@@ -145,14 +152,13 @@ impl Unit {
                 },
                 self.has_leaf()
             )
-            .to_string()
         }
     }
 }
 
 impl std::fmt::Debug for Unit {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self)
     }
 }
 
