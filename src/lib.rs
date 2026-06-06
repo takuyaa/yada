@@ -167,7 +167,7 @@ mod tests {
         let da = DoubleArray::new(da_bytes.unwrap());
 
         for (key, value) in keyset {
-            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+            assert_eq!(da.exact_match_search(key), Some(*value));
         }
         assert_eq!(da.exact_match_search("aa".as_bytes()), None);
         assert_eq!(da.exact_match_search("abc".as_bytes()), None);
@@ -219,7 +219,7 @@ mod tests {
         let da = DoubleArray::new(da_bytes.unwrap());
 
         for (key, value) in keyset {
-            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+            assert_eq!(da.exact_match_search(key), Some(*value));
         }
         assert_eq!(da.exact_match_search("dasss"), None);
     }
@@ -248,7 +248,7 @@ mod tests {
         let da = da_orig.clone();
 
         for (key, value) in keyset {
-            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+            assert_eq!(da.exact_match_search(key), Some(*value));
         }
         assert_eq!(da.exact_match_search("aa".as_bytes()), None);
         assert_eq!(da.exact_match_search("abc".as_bytes()), None);
