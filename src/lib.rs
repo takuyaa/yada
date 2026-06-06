@@ -33,7 +33,7 @@ where
     ///
     /// `bytes` must be a valid double array representation.
     pub unsafe fn new_unchecked(bytes: T) -> Self {
-        Self { 0: bytes }
+        Self(bytes)
     }
 
     /// Returns whether `bytes` is a valid double array representation.
