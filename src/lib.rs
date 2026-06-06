@@ -22,12 +22,12 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error if:
+    /// Returns an error if any of the following holds:
     ///
-    /// 1. `bytes.len()` is a non-zero multiple of `UNIT_SIZE`.
-    /// 2. The number of units (`bytes.len() / UNIT_SIZE`) is a multiple of `BLOCK_SIZE`.
-    /// 3. For every non-leaf unit at index `i`, `(unit.offset() as usize) ^ i` is
-    ///    strictly less than the total number of units.
+    /// 1. `bytes.len()` is zero or not a multiple of `UNIT_SIZE`.
+    /// 2. The number of units is not a multiple of `BLOCK_SIZE`.
+    /// 3. For some non-leaf unit at index `i`, `(unit.offset() as usize) ^ i` is
+    ///    greater than or equal to the total number of units.
     pub fn new(bytes: T) -> Result<Self> {
         Self::validate(&bytes)?;
         // SAFETY: `bytes` has just been checked to be a valid double array representation.
