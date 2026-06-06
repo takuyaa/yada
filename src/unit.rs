@@ -5,9 +5,7 @@ pub type UnitID = usize;
 pub const UNIT_SIZE: usize = std::mem::size_of::<u32>();
 
 /// An unit represents an element in a double-array.
-#[derive(Copy, Clone)]
-pub struct Unit(u32);
-
+///
 /// Unit represents one node of a double array trie. The bit width of each node is 32-bits.
 ///
 /// The bit layout of a non-leaf node:
@@ -36,6 +34,9 @@ pub struct Unit(u32);
 ///   VALUE                31-bits value that represents a value of the double array node.
 ///   IS_LEAF (I)          1-bit flag that indicates whether the node is a leaf node or not.
 ///                        This flag is always 1 in this case.
+#[derive(Copy, Clone)]
+pub struct Unit(u32);
+
 impl Default for Unit {
     fn default() -> Self {
         Self::new()
