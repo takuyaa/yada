@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-06
+### Added
+- Validation in `DoubleArray::new` to prevent undefined behavior when constructing from malformed byte slices ([#24](https://github.com/takuyaa/yada/issues/24)), by [@vabr-g](https://github.com/vabr-g) and [@kampersanda](https://github.com/kampersanda).
+- `DoubleArray::new_unchecked` (unsafe) for callers who can guarantee validity and want to skip the validation cost, by [@vabr-g](https://github.com/vabr-g) and [@kampersanda](https://github.com/kampersanda).
+- `YadaError` variants `EmptyDoubleArray`, `UnalignedDoubleArray`, `UnalignedDoubleArrayBlocks`, and `InvalidDoubleArrayUnit` for byte slice validation failures, by [@vabr-g](https://github.com/vabr-g) and [@kampersanda](https://github.com/kampersanda).
+- `Debug` impl for `DoubleArray`.
+
+### Changed
+- **BREAKING:** `DoubleArray::new` now returns `Result<Self, YadaError>` instead of `Self`, by [@vabr-g](https://github.com/vabr-g) and [@kampersanda](https://github.com/kampersanda).
+
 ## [0.6.0] - 2026-06-06
 ### Added
 - `YadaError` enum and `errors` module with explicit error variants for build failures, by [@kampersanda](https://github.com/kampersanda).
@@ -74,7 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/takuyaa/yada/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/takuyaa/yada/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/takuyaa/yada/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/takuyaa/yada/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/takuyaa/yada/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/takuyaa/yada/compare/0.4.1...0.5.0
