@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert!(da_bytes.is_ok());
 
     // create a double-array trie instance
-    let da = DoubleArray::new(da_bytes.unwrap());
+    let da = DoubleArray::new(da_bytes.unwrap()).expect("Valid double array");
 
     // save to file
     let mut file = File::create(filename)?;
@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut file = File::open(filename)?;
     let mut buf = Vec::new();
     let _ = file.read_to_end(&mut buf)?;
-    let da = DoubleArray::new(buf);
+    let da = DoubleArray::new(buf).expect("Valid double array");
 
     // test search
     for (key, value) in keyset.iter() {
