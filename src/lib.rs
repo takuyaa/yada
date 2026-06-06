@@ -58,7 +58,7 @@ where
             let val = u32::from_le_bytes(chunk.try_into().unwrap());
             let unit = Unit::from_u32(val);
             if !unit.is_leaf() {
-                let offset = (unit.offset() as usize) ^ (i as usize);
+                let offset = (unit.offset() as usize) ^ i;
                 if offset >= num_units {
                     return Err(YadaError::InvalidDoubleArrayUnit {
                         index: i,
