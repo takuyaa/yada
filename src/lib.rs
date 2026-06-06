@@ -19,7 +19,15 @@ where
     T: Deref<Target = [u8]>,
 {
     /// Creates a new `DoubleArray` with a byte slice.
-    /// Returns an error if the input is not a valid double-array trie.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    ///
+    /// 1. `bytes.len()` is a non-zero multiple of `UNIT_SIZE`.
+    /// 2. The number of units (`bytes.len() / UNIT_SIZE`) is a multiple of `BLOCK_SIZE`.
+    /// 3. For every non-leaf unit at index `i`, `(unit.offset() as usize) ^ i` is
+    ///    strictly less than the total number of units.
     pub fn new(bytes: T) -> Result<Self> {
         Self::validate(&bytes)?;
         // SAFETY: `bytes` has just been checked to be a valid double array representation.
@@ -30,7 +38,12 @@ where
     ///
     /// # Safety
     ///
-    /// `bytes` must be a valid double array representation.
+    /// The caller must ensure all of the following:
+    ///
+    /// 1. `bytes.len()` is a non-zero multiple of `UNIT_SIZE`.
+    /// 2. The number of units (`bytes.len() / UNIT_SIZE`) is a multiple of `BLOCK_SIZE`.
+    /// 3. For every non-leaf unit at index `i`, `(unit.offset() as usize) ^ i` is
+    ///    strictly less than the total number of units.
     pub unsafe fn new_unchecked(bytes: T) -> Self {
         Self(bytes)
     }
