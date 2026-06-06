@@ -2,13 +2,14 @@ pub mod builder;
 pub mod errors;
 pub mod unit;
 
+use crate::builder::BLOCK_SIZE;
 use crate::errors::{Result, YadaError};
 use crate::unit::{Unit, UnitID, UNIT_SIZE};
 use std::convert::TryInto;
 use std::ops::Deref;
 
 /// A double array trie.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DoubleArray<T>(pub T)
 where
     T: Deref<Target = [u8]>;
@@ -36,28 +37,33 @@ where
 
     /// Validates that `bytes` is a valid double array representation.
     fn validate(bytes: &[u8]) -> Result<()> {
-        let (n_units, remainder) = (bytes.len() / UNIT_SIZE, bytes.len() % UNIT_SIZE);
+        let (num_units, remainder) = (bytes.len() / UNIT_SIZE, bytes.len() % UNIT_SIZE);
         if remainder != 0 {
             return Err(YadaError::UnalignedDoubleArray {
                 len: bytes.len(),
                 unit_size: UNIT_SIZE,
             });
         }
-        if n_units == 0 {
+        if num_units == 0 {
             return Err(YadaError::EmptyDoubleArray);
+        }
+        if num_units % BLOCK_SIZE != 0 {
+            return Err(YadaError::UnalignedDoubleArrayBlocks {
+                num_units,
+                block_size: BLOCK_SIZE,
+            });
         }
 
         for (i, chunk) in bytes.chunks_exact(UNIT_SIZE).enumerate() {
             let val = u32::from_le_bytes(chunk.try_into().unwrap());
             let unit = Unit::from_u32(val);
             if !unit.is_leaf() {
-                let base = unit.offset() ^ (i as u32);
-                let max_child_index = base as usize | 0xff;
-                if max_child_index >= n_units {
+                let offset = (unit.offset() as usize) ^ (i as usize);
+                if offset >= num_units {
                     return Err(YadaError::InvalidDoubleArrayUnit {
                         index: i,
-                        child_index: max_child_index,
-                        num_units: n_units,
+                        offset,
+                        num_units,
                     });
                 }
             }
@@ -186,9 +192,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::builder::DoubleArrayBuilder;
+    use crate::builder::{DoubleArrayBuilder, BLOCK_SIZE};
     use crate::errors::YadaError;
-    use crate::unit::UNIT_SIZE;
+    use crate::unit::{Unit, UNIT_SIZE};
     use crate::DoubleArray;
 
     #[test]
@@ -332,38 +338,49 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_new() {
-        let da = DoubleArray::new(vec![1, 2, 3]);
-        let err = match da {
-            Ok(_) => panic!("expected an error"),
-            Err(err) => err,
-        };
+    fn test_new_rejects_unaligned_bytes() {
+        let err = DoubleArray::new(vec![1, 2, 3]).unwrap_err();
         assert_eq!(
             err,
             YadaError::UnalignedDoubleArray {
                 len: 3,
-                unit_size: UNIT_SIZE
+                unit_size: UNIT_SIZE,
             }
         );
+    }
 
-        let da = DoubleArray::new(Vec::new());
-        let err = match da {
-            Ok(_) => panic!("expected an error"),
-            Err(err) => err,
-        };
+    #[test]
+    fn test_new_rejects_empty_double_array() {
+        let err = DoubleArray::new(Vec::new()).unwrap_err();
         assert_eq!(err, YadaError::EmptyDoubleArray);
+    }
 
-        let da = DoubleArray::new(vec![0, 0, 0, 0]);
-        let err = match da {
-            Ok(_) => panic!("expected an error"),
-            Err(err) => err,
-        };
+    #[test]
+    fn test_new_rejects_unaligned_blocks() {
+        let err = DoubleArray::new(vec![0, 0, 0, 0]).unwrap_err();
+        assert_eq!(
+            err,
+            YadaError::UnalignedDoubleArrayBlocks {
+                num_units: 1,
+                block_size: BLOCK_SIZE,
+            }
+        );
+    }
+
+    #[test]
+    fn test_new_rejects_invalid_unit_offset() {
+        let mut da_bytes = vec![0; UNIT_SIZE * BLOCK_SIZE];
+        let mut unit = Unit::new();
+        unit.set_offset(BLOCK_SIZE as u32);
+        da_bytes[..UNIT_SIZE].copy_from_slice(&unit.as_u32().to_le_bytes());
+
+        let err = DoubleArray::new(da_bytes).unwrap_err();
         assert_eq!(
             err,
             YadaError::InvalidDoubleArrayUnit {
                 index: 0,
-                child_index: 255,
-                num_units: 1
+                offset: BLOCK_SIZE,
+                num_units: BLOCK_SIZE,
             }
         );
     }

@@ -3,7 +3,7 @@ use crate::unit::{Unit, UnitID};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 
-const BLOCK_SIZE: usize = 256;
+pub(crate) const BLOCK_SIZE: usize = 256;
 const NUM_TARGET_BLOCKS: i32 = 16; // the number of target blocks to find offsets
 const INVALID_NEXT: u8 = 0; // 0 means that there is no next unused unit
 const INVALID_PREV: u8 = 255; // 255 means that there is no previous unused unit
