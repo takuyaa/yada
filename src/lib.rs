@@ -2,6 +2,7 @@ pub mod builder;
 pub mod errors;
 pub mod unit;
 
+use crate::errors::{Result, YadaError};
 use crate::unit::{Unit, UnitID, UNIT_SIZE};
 use std::convert::TryInto;
 use std::ops::Deref;
@@ -17,14 +18,11 @@ where
     T: Deref<Target = [u8]>,
 {
     /// Creates a new `DoubleArray` with a byte slice.
-    /// Returns `None` if the input is not a valid double-array trie.
-    pub fn new(bytes: T) -> Option<Self> {
-        if Self::validate(&bytes) {
-            // SAFETY: `bytes` has just been checked to be a valid double array representation.
-            Some(unsafe { Self::new_unchecked(bytes) })
-        } else {
-            None
-        }
+    /// Returns an error if the input is not a valid double-array trie.
+    pub fn new(bytes: T) -> Result<Self> {
+        Self::validate(&bytes)?;
+        // SAFETY: `bytes` has just been checked to be a valid double array representation.
+        Ok(unsafe { Self::new_unchecked(bytes) })
     }
 
     /// Creates a new `DoubleArray` with a byte slice without verification.
@@ -36,24 +34,36 @@ where
         Self(bytes)
     }
 
-    /// Returns whether `bytes` is a valid double array representation.
-    fn validate(bytes: &[u8]) -> bool {
+    /// Validates that `bytes` is a valid double array representation.
+    fn validate(bytes: &[u8]) -> Result<()> {
         let (n_units, remainder) = (bytes.len() / UNIT_SIZE, bytes.len() % UNIT_SIZE);
-        if remainder != 0 || n_units == 0 {
-            return false;
+        if remainder != 0 {
+            return Err(YadaError::UnalignedDoubleArray {
+                len: bytes.len(),
+                unit_size: UNIT_SIZE,
+            });
+        }
+        if n_units == 0 {
+            return Err(YadaError::EmptyDoubleArray);
         }
 
-        bytes.chunks_exact(UNIT_SIZE).enumerate().all(|(i, chunk)| {
+        for (i, chunk) in bytes.chunks_exact(UNIT_SIZE).enumerate() {
             let val = u32::from_le_bytes(chunk.try_into().unwrap());
             let unit = Unit::from_u32(val);
-            if unit.is_leaf() {
-                true
-            } else {
+            if !unit.is_leaf() {
                 let base = unit.offset() ^ (i as u32);
                 let max_child_index = base as usize | 0xff;
-                max_child_index < n_units
+                if max_child_index >= n_units {
+                    return Err(YadaError::InvalidDoubleArrayUnit {
+                        index: i,
+                        child_index: max_child_index,
+                        num_units: n_units,
+                    });
+                }
             }
-        })
+        }
+
+        Ok(())
     }
 
     /// Finds a value associated with a `key`.
@@ -177,6 +187,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::builder::DoubleArrayBuilder;
+    use crate::errors::YadaError;
+    use crate::unit::UNIT_SIZE;
     use crate::DoubleArray;
 
     #[test]
@@ -322,6 +334,37 @@ mod tests {
     #[test]
     fn test_invalid_new() {
         let da = DoubleArray::new(vec![1, 2, 3]);
-        assert!(da.is_none());
+        let err = match da {
+            Ok(_) => panic!("expected an error"),
+            Err(err) => err,
+        };
+        assert_eq!(
+            err,
+            YadaError::UnalignedDoubleArray {
+                len: 3,
+                unit_size: UNIT_SIZE
+            }
+        );
+
+        let da = DoubleArray::new(Vec::new());
+        let err = match da {
+            Ok(_) => panic!("expected an error"),
+            Err(err) => err,
+        };
+        assert_eq!(err, YadaError::EmptyDoubleArray);
+
+        let da = DoubleArray::new(vec![0, 0, 0, 0]);
+        let err = match da {
+            Ok(_) => panic!("expected an error"),
+            Err(err) => err,
+        };
+        assert_eq!(
+            err,
+            YadaError::InvalidDoubleArrayUnit {
+                index: 0,
+                child_index: 255,
+                num_units: 1
+            }
+        );
     }
 }

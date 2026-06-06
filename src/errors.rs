@@ -27,6 +27,19 @@ pub enum YadaError {
 
     /// The resulting trie exceeds the maximum number of units.
     TooManyUnits { max: u32 },
+
+    /// The input double-array trie is empty.
+    EmptyDoubleArray,
+
+    /// The input double-array trie byte length is not aligned to the unit size.
+    UnalignedDoubleArray { len: usize, unit_size: usize },
+
+    /// A unit in the input double-array trie refers to a child unit outside the input.
+    InvalidDoubleArrayUnit {
+        index: usize,
+        child_index: usize,
+        num_units: usize,
+    },
 }
 
 impl fmt::Display for YadaError {
@@ -43,6 +56,19 @@ impl fmt::Display for YadaError {
             Self::TooManyUnits { max } => {
                 write!(f, "num_units must be no greater than {max}")
             }
+            Self::EmptyDoubleArray => write!(f, "double-array trie must not be empty"),
+            Self::UnalignedDoubleArray { len, unit_size } => write!(
+                f,
+                "double-array trie byte length ({len}) must be a multiple of unit size ({unit_size})"
+            ),
+            Self::InvalidDoubleArrayUnit {
+                index,
+                child_index,
+                num_units,
+            } => write!(
+                f,
+                "double-array trie unit at index {index} can refer to child index {child_index}, but num_units is {num_units}"
+            ),
         }
     }
 }
