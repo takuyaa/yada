@@ -13,29 +13,29 @@ This document is for maintainers cutting a new release.
 1. Decide the new version `X.Y.Z` following [SemVer](https://semver.org/).
    Optionally run `cargo semver-checks check-release` (install with
    `cargo install cargo-semver-checks`) to detect API breakage.
-2. Update `CHANGELOG.md`:
+2. Create a release branch off `master` (e.g. `git switch -c release-X.Y.Z`
+   or `wt switch -c release-X.Y.Z --base master`).
+3. Update `CHANGELOG.md`:
    - Replace `## [Unreleased]` with `## [X.Y.Z] - YYYY-MM-DD`
    - Add a new empty `## [Unreleased]` above
    - Add a new comparison link at the bottom and update the `[Unreleased]` link
-3. Update `version` in `Cargo.toml` to `X.Y.Z`.
-4. Commit and push to `master`:
+4. Update `version` in `Cargo.toml` to `X.Y.Z`.
+5. Commit, push the branch, open a `Release X.Y.Z` PR against `master`,
+   wait for CI to pass, then merge it.
+6. Pull the merged `master` and tag it:
 
    ```
-   git commit -am "Release X.Y.Z"
-   git push
+   git switch master
+   git pull --ff-only
+   git tag -a X.Y.Z -m "Release X.Y.Z"
+   git push origin X.Y.Z
    ```
-5. Tag and push:
-
-   ```
-   git tag X.Y.Z
-   git push --tags
-   ```
-6. The `Release` workflow will:
+7. The `Release` workflow will:
    - Verify the tag matches `Cargo.toml`
    - Extract the matching `CHANGELOG.md` section as release notes
    - Run tests, then `cargo publish` via Trusted Publishing
    - Create the GitHub Release
-7. Verify the published version appears on
+8. Verify the published version appears on
    <https://crates.io/crates/yada> and the GitHub Release page.
 
 ## Recovering from a failed release
