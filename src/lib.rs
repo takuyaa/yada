@@ -1,4 +1,5 @@
 pub mod builder;
+pub mod errors;
 pub mod unit;
 
 use crate::unit::{Unit, UnitID, UNIT_SIZE};
@@ -86,7 +87,7 @@ where
         }
 
         // traverse node by NULL ('\0')
-        let node_pos = (unit.offset() ^ node_pos as u32 ^ 0u32) as UnitID;
+        let node_pos = (unit.offset() ^ node_pos as u32) as UnitID;
         unit = self.get_unit(node_pos)?;
         assert!(unit.is_leaf());
         assert!(unit.value() < (1 << 31));
@@ -196,12 +197,12 @@ mod tests {
         ];
 
         let da_bytes = DoubleArrayBuilder::build(keyset);
-        assert!(da_bytes.is_some());
+        assert!(da_bytes.is_ok());
 
         let da = DoubleArray::new(da_bytes.unwrap()).unwrap();
 
         for (key, value) in keyset {
-            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+            assert_eq!(da.exact_match_search(key), Some(*value));
         }
         assert_eq!(da.exact_match_search("aa".as_bytes()), None);
         assert_eq!(da.exact_match_search("abc".as_bytes()), None);
@@ -248,12 +249,12 @@ mod tests {
         ];
 
         let da_bytes = DoubleArrayBuilder::build(keyset);
-        assert!(da_bytes.is_some());
+        assert!(da_bytes.is_ok());
 
         let da = DoubleArray::new(da_bytes.unwrap()).unwrap();
 
         for (key, value) in keyset {
-            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+            assert_eq!(da.exact_match_search(key), Some(*value));
         }
         assert_eq!(da.exact_match_search("dasss"), None);
     }
@@ -276,13 +277,13 @@ mod tests {
         ];
 
         let da_bytes = DoubleArrayBuilder::build(keyset);
-        assert!(da_bytes.is_some());
+        assert!(da_bytes.is_ok());
 
         let da_orig = DoubleArray::new(da_bytes.unwrap()).unwrap();
         let da = da_orig.clone();
 
         for (key, value) in keyset {
-            assert_eq!(da.exact_match_search(key), Some(*value as u32));
+            assert_eq!(da.exact_match_search(key), Some(*value));
         }
         assert_eq!(da.exact_match_search("aa".as_bytes()), None);
         assert_eq!(da.exact_match_search("abc".as_bytes()), None);

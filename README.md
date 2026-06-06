@@ -19,7 +19,7 @@ compact data representation.
 
 ## Requirements
 
-- Rust version >= 1.46.0 
+- Rust version >= 1.58.0
 
 ## Usage
 
@@ -41,7 +41,7 @@ let keyset = &[
 ];
 
 // build a double-array trie binary
-let da_bytes: Option<Vec<u8>> = DoubleArrayBuilder::build(keyset);
+let da_bytes = DoubleArrayBuilder::build(keyset)?;
 ```
 
 ### Search entries by keys

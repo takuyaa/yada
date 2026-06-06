@@ -16,14 +16,14 @@ fn main() {
 
     // build a double-array trie binary
     let da_bytes = DoubleArrayBuilder::build(keyset);
-    assert!(da_bytes.is_some());
+    assert!(da_bytes.is_ok());
 
     // create a double-array trie instance
     let da = DoubleArray::new(da_bytes.unwrap()).expect("Valid double array");
 
     // exact match search
     for (key, value) in keyset {
-        assert_eq!(da.exact_match_search(key), Some(*value as u32));
+        assert_eq!(da.exact_match_search(key), Some(*value));
     }
     assert_eq!(da.exact_match_search("aa".as_bytes()), None);
     assert_eq!(da.exact_match_search("aba".as_bytes()), None);
