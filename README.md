@@ -19,7 +19,7 @@ compact data representation.
 
 ## Requirements
 
-- Rust version >= 1.46.0 
+- Rust version >= 1.58.0
 
 ## Usage
 
