@@ -11,7 +11,8 @@ This document is for maintainers cutting a new release.
 ## Release procedure
 
 1. Decide the new version `X.Y.Z` following [SemVer](https://semver.org/).
-   Optionally run `cargo semver-checks check-release` to detect API breakage.
+   Optionally run `cargo semver-checks check-release` (install with
+   `cargo install cargo-semver-checks`) to detect API breakage.
 2. Update `CHANGELOG.md`:
    - Replace `## [Unreleased]` with `## [X.Y.Z] - YYYY-MM-DD`
    - Add a new empty `## [Unreleased]` above

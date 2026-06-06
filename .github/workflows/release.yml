@@ -13,6 +13,7 @@ permissions:
 
 concurrency:
   group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -27,7 +28,7 @@ jobs:
       - name: Verify tag matches Cargo.toml version
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          if ! grep -q "^version = \"${VERSION}\"$" Cargo.toml; then
+          if ! grep -qxF "version = \"${VERSION}\"" Cargo.toml; then
             echo "Tag ${VERSION} does not match Cargo.toml version:" >&2
             grep "^version =" Cargo.toml >&2
             exit 1
