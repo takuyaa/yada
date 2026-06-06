@@ -41,13 +41,13 @@ jobs:
             $0 ~ "^## \\[" ver "\\]" { flag=1; next }
             flag && /^## \[/ { exit }
             flag { print }
-          ' CHANGELOG.md > "${RUNNER_TEMP}/release_notes.md"
-          if [ ! -s "${RUNNER_TEMP}/release_notes.md" ]; then
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
             echo "No CHANGELOG.md section found for [${VERSION}]" >&2
             exit 1
           fi
           echo "---- release notes ----"
-          cat "${RUNNER_TEMP}/release_notes.md"
+          cat release_notes.md
 
       - run: cargo test -p yada
 
@@ -64,5 +64,5 @@ jobs:
         run: |
           gh release create "${GITHUB_REF_NAME}" \
             --title "${GITHUB_REF_NAME}" \
-            --notes-file "${RUNNER_TEMP}/release_notes.md" \
+            --notes-file release_notes.md \
             --verify-tag
