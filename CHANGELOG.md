@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-06
+### Added
+- `YadaError` enum and `errors` module with explicit error variants for build failures, by [@kampersanda](https://github.com/kampersanda).
+- Keyset validation in `DoubleArrayBuilder::build`: detects empty keysets, empty keys, keys containing NUL bytes, duplicate keys, unsorted keysets, values greater than `2^31 - 1`, and tries exceeding `2^29` units, by [@kampersanda](https://github.com/kampersanda).
+- `Default` impl for `DoubleArrayBuilder` and `Unit`.
+- `Display` impl for `Unit`.
+- GitHub Actions CI: `test` (Linux x86/ARM, macOS, Windows), `fmt`, `clippy`, `doc`, and `msrv` jobs.
+- GitHub Actions release workflow: SemVer tag pushes verify the version, run tests, publish to crates.io via Trusted Publishing (OIDC), and create a GitHub Release from the matching `CHANGELOG.md` section.
+- `RELEASE.md` documenting the maintainer release procedure.
+- `rust-version = "1.58.0"` in `Cargo.toml`.
+
+### Changed
+- **BREAKING:** `DoubleArrayBuilder::build` now returns `Result<Vec<u8>, YadaError>` instead of `Option<Vec<u8>>`, by [@kampersanda](https://github.com/kampersanda).
+- Skip unnecessary recursion into leaf nodes during build, by [@kampersanda](https://github.com/kampersanda).
+- Update README MSRV from `1.46.0` to `1.58.0`.
+
+### Removed
+- **BREAKING:** Removed the stateful `build_from_keyset` API. Use `DoubleArrayBuilder::build` instead, by [@kampersanda](https://github.com/kampersanda).
+
 ## [0.5.1] - 2024-02-25
 ### Changed
 - Fix a corner case of `exact_match_search` by [@BlueGreenMagick](https://github.com/BlueGreenMagick).
@@ -55,7 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/takuyaa/yada/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/takuyaa/yada/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/takuyaa/yada/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/takuyaa/yada/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/takuyaa/yada/compare/0.4.1...0.5.0
 [0.4.1]: https://github.com/takuyaa/yada/compare/0.4.0...0.4.1
