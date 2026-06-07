@@ -10,10 +10,10 @@ compact data representation.
 
 - Build static double-array tries
   - Yada adopts the compact binary representation of double-array nodes like
-  [Darts-clone](https://github.com/s-yata/darts-clone).
+    [Darts-clone](https://github.com/s-yata/darts-clone).
 - Common prefix search
   - The method returns an `Iterator` that is an effective way to find multiple
-  values without heap allocation.
+    values without heap allocation.
 - Exact match search
   - The method finds a value associated with an exact match key as a `Option`.
 
@@ -75,8 +75,10 @@ assert_eq!(
 
 - The value must be represented as a 31 bit unsigned integer, typed `u32`.
   - Yada uses the most significant bit (MSB) as a flag to distinguish between a value node and others.
+- Keys must not contain `NULL` (`0x00`) bytes.
+  - Yada treats `NULL` as a terminator while building the double-array trie.
 - The offset of an double-array node is 29 bits wide, so it can represent up to
- ~536M nodes.
+  ~536M nodes.
   - It means this limitation results in the size upper bound ~2GB of double-arrays.
 
 ## License
@@ -97,6 +99,6 @@ dual licensed as above, without any additional terms or conditions.
 ## References
 
 - [Aoe, J. An Efficient Digital Search Algorithm by Using a Double-Array Structure.
-IEEE Transactions on Software Engineering. Vol. 15, 9 (Sep 1989). pp. 1066-1077.](https://ieeexplore.ieee.org/document/31365)
+  IEEE Transactions on Software Engineering. Vol. 15, 9 (Sep 1989). pp. 1066-1077.](https://ieeexplore.ieee.org/document/31365)
 - [Darts: Double ARray Trie System](http://chasen.org/~taku/software/darts/)
 - [Darts-clone: A clone of Darts (Double-ARray Trie System)](https://github.com/s-yata/darts-clone)
